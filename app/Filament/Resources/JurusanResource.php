@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Actions;
 
 // ─── JurusanResource ─────────────────────────────────────────
 class JurusanResource extends Resource
@@ -69,7 +70,7 @@ class JurusanResource extends Resource
                     ->sortable(),
                 Tables\Columns\IconColumn::make('aktif')->boolean(),
             ])
-            ->actions([Tables\Actions\EditAction::make()])
+            ->actions([Actions\EditAction::make()])
             ->defaultSort('kode');
     }
 

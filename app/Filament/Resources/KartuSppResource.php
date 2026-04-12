@@ -15,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 
 class KartuSppResource extends Resource
@@ -159,15 +160,15 @@ class KartuSppResource extends Resource
                     ->default(now()->year),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('lihat_tunggakan')
+                Actions\Action::make('lihat_tunggakan')
                     ->label('Lihat Tunggakan')
                     ->icon('heroicon-o-exclamation-triangle')
                     ->color('warning')
                     ->url(fn () => route('filament.admin.resources.kartu-spp.tunggakan')),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->defaultSort('tgl_bayar', 'desc')
             ->striped();

@@ -8,6 +8,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Actions;
 
 class KelasResource extends Resource
 {
@@ -56,7 +57,7 @@ class KelasResource extends Resource
                 Tables\Columns\TextColumn::make('siswa_count')->label('Jml Siswa')->counts('siswa'),
                 Tables\Columns\IconColumn::make('aktif')->boolean(),
             ])
-            ->actions([Tables\Actions\EditAction::make()])
+            ->actions([Actions\EditAction::make()])
             ->defaultSort('nama_kelas');
     }
 

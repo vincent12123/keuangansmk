@@ -181,16 +181,16 @@ class SiswaResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\Action::make('kartu_spp')
+                Actions\Action::make('kartu_spp')
                     ->label('Kartu SPP')
                     ->icon('heroicon-o-document-text')
                     ->color('info')
                     ->url(fn (Siswa $record) => route('filament.admin.resources.kartu-spp.index', ['nis' => $record->nis])),
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('nama')

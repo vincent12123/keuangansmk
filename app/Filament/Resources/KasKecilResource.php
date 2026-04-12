@@ -13,6 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class KasKecilResource extends Resource
 {
@@ -163,7 +164,7 @@ class KasKecilResource extends Resource
             ])
             ->headerActions([
                 // Ringkasan saldo kas kecil
-                Tables\Actions\Action::make('saldo_info')
+                Actions\Action::make('saldo_info')
                     ->label(function () {
                         $bulan  = now()->month;
                         $tahun  = now()->year;
@@ -181,7 +182,7 @@ class KasKecilResource extends Resource
                     ->disabled()
                     ->color('gray'),
 
-                Tables\Actions\Action::make('pengisian')
+                Actions\Action::make('pengisian')
                     ->label('+ Pengisian Kas Kecil')
                     ->icon('heroicon-o-plus-circle')
                     ->color('success')
@@ -217,12 +218,12 @@ class KasKecilResource extends Resource
                     ->successNotificationTitle('Pengisian kas kecil berhasil dicatat'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('tanggal', 'desc')
