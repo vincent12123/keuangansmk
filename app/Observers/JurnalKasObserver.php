@@ -9,13 +9,6 @@ use App\Models\Siswa;
 
 class JurnalKasObserver
 {
-    // Kode akun yang dianggap sebagai pembayaran SPP
-    private array $kodeAkunSpp = [
-        '4.01.01.00', // RPL
-        '4.01.02.00', // TBSM
-        '4.01.03.00', // Perhotelan
-    ];
-
     public function created(JurnalKas $jurnal): void
     {
         $this->syncKartuSpp($jurnal);
@@ -28,34 +21,48 @@ class JurnalKasObserver
 
     public function deleted(JurnalKas $jurnal): void
     {
-        // Hapus kartu SPP yang terhubung jika jurnal dihapus
-        KartuSpp::where('jurnal_kas_id', $jurnal->id)->delete();
+        $this->deleteLinkedKartuSpp($jurnal);
     }
 
     private function syncKartuSpp(JurnalKas $jurnal): void
     {
-        // Hanya proses jika:
-        // 1. Ada NIS (penerimaan dari siswa)
-        // 2. Kode akun adalah SPP
-        if (! $jurnal->nis || ! $jurnal->kode_akun_id) {
+        $kodeAkun = $jurnal->relationLoaded('kodeAkun')
+            ? $jurnal->kodeAkun
+            : KodeAkun::find($jurnal->kode_akun_id);
+
+        $bulanDibayar = session()->pull('spp_bulan_pending');
+
+        if (blank($bulanDibayar) && $jurnal->exists) {
+            $bulanDibayar = KartuSpp::where('jurnal_kas_id', $jurnal->id)
+                ->pluck('bulan')
+                ->all();
+        }
+
+        $bulanDibayar = collect($bulanDibayar ?: [$jurnal->bulan])
+            ->map(fn ($bulan) => (int) $bulan)
+            ->filter(fn (int $bulan) => $bulan >= 1 && $bulan <= 12)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (! $jurnal->nis || ! $kodeAkun) {
+            $this->deleteLinkedKartuSpp($jurnal);
             return;
         }
 
-        $kodeAkun = KodeAkun::find($jurnal->kode_akun_id);
-
-        if (! $kodeAkun || ! in_array($kodeAkun->kode, $this->kodeAkunSpp, true)) {
+        if (! in_array($kodeAkun->kode, JurnalKas::SPP_ACCOUNT_CODES, true)) {
+            $this->deleteLinkedKartuSpp($jurnal);
             return;
         }
 
         $siswa = Siswa::where('nis', $jurnal->nis)->first();
 
         if (! $siswa) {
+            $this->deleteLinkedKartuSpp($jurnal);
             return;
         }
 
-        // Cek session bulan_spp dari form (diset via request)
-        // Jika tidak ada, auto-detect dari uraian atau gunakan bulan transaksi
-        $bulanDibayar = session('spp_bulan_' . $jurnal->id, [$jurnal->bulan]);
+        $this->deleteLinkedKartuSpp($jurnal);
 
         foreach ($bulanDibayar as $bulan) {
             KartuSpp::updateOrCreate(
@@ -72,5 +79,14 @@ class JurnalKasObserver
                 ]
             );
         }
+    }
+
+    private function deleteLinkedKartuSpp(JurnalKas $jurnal): void
+    {
+        if (! $jurnal->id) {
+            return;
+        }
+
+        KartuSpp::where('jurnal_kas_id', $jurnal->id)->delete();
     }
 }

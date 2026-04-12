@@ -35,8 +35,10 @@ class SiswaResource extends Resource
                         ->label('NIS')
                         ->required()
                         ->unique(ignoreRecord: true)
+                        ->disabledOn('edit')
                         ->maxLength(20)
-                        ->placeholder('24010262'),
+                        ->placeholder('24010262')
+                        ->helperText('NIS bersifat permanen dan tidak dapat diubah setelah siswa dibuat.'),
 
                     Forms\Components\TextInput::make('nama')
                         ->label('Nama Lengkap')

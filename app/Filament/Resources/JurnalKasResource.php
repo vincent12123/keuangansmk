@@ -5,8 +5,6 @@ namespace App\Filament\Resources;
 use App\Models\JurnalKas;
 use App\Models\KodeAkun;
 use App\Models\Siswa;
-use App\Models\Kelas;
-use App\Models\KartuSpp;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -17,7 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class JurnalKasResource extends Resource
 {
@@ -56,25 +54,27 @@ class JurnalKasResource extends Resource
                         ->required()
                         ->searchable()
                         ->preload()
-                        ->options(function () {
-                            return KodeAkun::aktif()
-                                ->whereRaw("RIGHT(kode, 2) != '00'")
-                                ->orderBy('kode')
-                                ->get()
-                                ->mapWithKeys(fn ($k) => [
-                                    $k->id => "[{$k->kode}] {$k->nama}"
-                                ]);
-                        })
+                        ->helperText('Jurnal hanya untuk akun non-kas-kecil yang aktif.')
+                        ->options(fn (): array => static::getJurnalKodeAkunOptions())
                         ->live()
                         ->afterStateUpdated(function ($state, Set $set) {
-                            if (! $state) return;
+                            if (! $state) {
+                                return;
+                            }
+
                             $kode = KodeAkun::find($state);
-                            if (! $kode) return;
-                            // Jika pengeluaran, kosongkan NIS
+
+                            if (! $kode) {
+                                return;
+                            }
+
                             if ($kode->tipe === 'pengeluaran') {
                                 $set('nis', null);
-                                $set('nama_penyetor', null);
                                 $set('kelas_id', null);
+                            }
+
+                            if (! in_array($kode->kode, JurnalKas::SPP_ACCOUNT_CODES, true)) {
+                                $set('bulan_spp', []);
                             }
                         })
                         ->columnSpan(1),
@@ -86,11 +86,17 @@ class JurnalKasResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('nis')
                         ->label('NIS Siswa')
+                        ->disabled(fn (Get $get): bool => static::isPengeluaranAccountId($get('kode_akun_id')))
+                        ->required(fn (Get $get): bool => static::isSppAccountId($get('kode_akun_id')))
                         ->maxLength(20)
                         ->live(debounce: 500)
                         ->afterStateUpdated(function ($state, Set $set) {
-                            if (! $state) return;
+                            if (! $state) {
+                                return;
+                            }
+
                             $siswa = Siswa::where('nis', $state)->first();
+
                             if ($siswa) {
                                 $set('nama_penyetor', $siswa->nama);
                                 $set('kelas_id', $siswa->kelas_id);
@@ -157,6 +163,7 @@ class JurnalKasResource extends Resource
                 ->schema([
                     Forms\Components\CheckboxList::make('bulan_spp')
                         ->label('Bulan SPP yang Dibayar')
+                        ->required(fn (Get $get): bool => static::isSppAccountId($get('kode_akun_id')))
                         ->options([
                             1  => 'Januari',  2  => 'Februari', 3  => 'Maret',
                             4  => 'April',    5  => 'Mei',       6  => 'Juni',
@@ -165,16 +172,9 @@ class JurnalKasResource extends Resource
                         ])
                         ->columns(4)
                         ->helperText('Centang bulan-bulan yang tercakup dalam pembayaran ini')
-                        ->dehydrated(false), // tidak disimpan langsung ke DB
+                        ->dehydrated(),
                 ])
-                ->visible(function (Get $get): bool {
-                    if (! $get('kode_akun_id')) return false;
-                    $kode = KodeAkun::find($get('kode_akun_id'));
-                    // Tampilkan hanya jika kode akun adalah SPP (4.01.01 / 4.01.02 / 4.01.03)
-                    return $kode && in_array($kode->kode, [
-                        '4.01.01.00', '4.01.02.00', '4.01.03.00', '4.01.06.00',
-                    ]);
-                }),
+                ->visible(fn (Get $get): bool => static::isSppAccountId($get('kode_akun_id'))),
         ]);
     }
 
@@ -276,10 +276,7 @@ class JurnalKasResource extends Resource
                 Tables\Filters\SelectFilter::make('kode_akun_id')
                     ->label('Kode Akun')
                     ->searchable()
-                    ->options(fn () => KodeAkun::aktif()
-                        ->whereRaw("RIGHT(kode, 2) != '00'")
-                        ->orderBy('kode')
-                        ->pluck('nama', 'id')),
+                    ->options(fn (): array => static::getJurnalKodeAkunOptions()),
             ])
             ->headerActions([
                 // Ringkasan bulan ini di header tabel
@@ -335,5 +332,101 @@ class JurnalKasResource extends Resource
     public static function getNavigationBadgeColor(): string
     {
         return 'info';
+    }
+
+    public static function prepareFormDataBeforeSave(array $data): array
+    {
+        $kodeAkun = KodeAkun::find($data['kode_akun_id'] ?? null);
+
+        if (! $kodeAkun || ! $kodeAkun->aktif || $kodeAkun->kas_kecil) {
+            throw ValidationException::withMessages([
+                'kode_akun_id' => 'Pilih kode akun jurnal yang aktif dan bukan akun kas kecil.',
+            ]);
+        }
+
+        $cash = (float) ($data['cash'] ?? 0);
+        $bank = (float) ($data['bank'] ?? 0);
+
+        if (($cash + $bank) <= 0) {
+            throw ValidationException::withMessages([
+                'cash' => 'Minimal salah satu nilai cash atau bank harus lebih dari 0.',
+                'bank' => 'Minimal salah satu nilai cash atau bank harus lebih dari 0.',
+            ]);
+        }
+
+        if ($kodeAkun->tipe === 'pengeluaran') {
+            $data['nis'] = null;
+            $data['kelas_id'] = null;
+        }
+
+        $bulanSpp = collect($data['bulan_spp'] ?? [])
+            ->map(fn ($bulan) => (int) $bulan)
+            ->filter(fn (int $bulan) => $bulan >= 1 && $bulan <= 12)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (in_array($kodeAkun->kode, JurnalKas::SPP_ACCOUNT_CODES, true)) {
+            if (blank($data['nis'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'nis' => 'NIS wajib diisi untuk transaksi pembayaran SPP.',
+                ]);
+            }
+
+            if (! Siswa::where('nis', $data['nis'])->exists()) {
+                throw ValidationException::withMessages([
+                    'nis' => 'NIS siswa tidak ditemukan.',
+                ]);
+            }
+
+            if ($bulanSpp === []) {
+                throw ValidationException::withMessages([
+                    'bulan_spp' => 'Pilih minimal satu bulan SPP yang dibayar.',
+                ]);
+            }
+
+            session(['spp_bulan_pending' => $bulanSpp]);
+        } else {
+            session()->forget('spp_bulan_pending');
+        }
+
+        unset($data['bulan_spp']);
+
+        return $data;
+    }
+
+    protected static function getJurnalKodeAkunOptions(): array
+    {
+        return KodeAkun::query()
+            ->transaksional()
+            ->where('kas_kecil', false)
+            ->orderBy('kode')
+            ->get()
+            ->mapWithKeys(fn (KodeAkun $kodeAkun) => [
+                $kodeAkun->id => $kodeAkun->label,
+            ])
+            ->all();
+    }
+
+    protected static function isSppAccountId(?int $kodeAkunId): bool
+    {
+        if (! $kodeAkunId) {
+            return false;
+        }
+
+        return in_array(
+            KodeAkun::whereKey($kodeAkunId)->value('kode'),
+            JurnalKas::SPP_ACCOUNT_CODES,
+            true,
+        );
+    }
+
+    protected static function isPengeluaranAccountId(?int $kodeAkunId): bool
+    {
+        if (! $kodeAkunId) {
+            return false;
+        }
+
+        return KodeAkun::whereKey($kodeAkunId)->value('tipe') === 'pengeluaran';
     }
 }

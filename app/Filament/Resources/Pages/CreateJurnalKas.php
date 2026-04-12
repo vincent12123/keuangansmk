@@ -8,4 +8,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateJurnalKas extends CreateRecord
 {
     protected static string $resource = JurnalKasResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return JurnalKasResource::prepareFormDataBeforeSave($data);
+    }
 }

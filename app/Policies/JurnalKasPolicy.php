@@ -4,8 +4,6 @@ namespace App\Policies;
 
 use App\Models\JurnalKas;
 use App\Models\User;
-use Illuminate\Support\Carbon;
-
 class JurnalKasPolicy
 {
     public function viewAny(User $user): bool
@@ -34,9 +32,7 @@ class JurnalKasPolicy
             return true;
         }
 
-        // Bendahara hanya bisa edit transaksi bulan berjalan
-        // atau maksimal 3 hari ke belakang
-        return $jurnal->tanggal->gte(now()->subDays(3));
+        return $jurnal->created_at?->gte(now()->subDays(3)) ?? false;
     }
 
     public function delete(User $user, JurnalKas $jurnal): bool

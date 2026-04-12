@@ -98,5 +98,14 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $bendaharaUser->assignRole('bendahara');
+
+        $kepalaSekolahUser = User::firstOrCreate(
+            ['email' => 'kepalasekolah@karyabangsa.sch.id'],
+            [
+                'name'     => 'Kepala Sekolah',
+                'password' => bcrypt('KepalaSekolah@1234'),
+            ]
+        );
+        $kepalaSekolahUser->assignRole('kepala_sekolah');
     }
 }

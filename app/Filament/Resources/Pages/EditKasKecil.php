@@ -10,6 +10,11 @@ class EditKasKecil extends EditRecord
 {
     protected static string $resource = KasKecilResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return KasKecilResource::prepareFormDataBeforeSave($data);
+    }
+
     protected function getHeaderActions(): array
     {
         return [

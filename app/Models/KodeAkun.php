@@ -43,13 +43,9 @@ class KodeAkun extends Model
     // Kode yang berisi sub-akun (tidak dipakai langsung di transaksi)
     public function scopeTransaksional($query)
     {
-        // Kode level 4 (xx.xx.xx.00 bukan header, xx.xx.xx.xx yang punya nilai)
-        return $query->where('aktif', true)
-                     ->whereNotIn('kode', function ($q) {
-                         $q->selectRaw("kode")
-                           ->from('kode_akun')
-                           ->whereRaw("RIGHT(kode, 2) = '00'");
-                     });
+        return $query
+            ->where('aktif', true)
+            ->whereNotNull('sub_kategori');
     }
 
     // ─── Relations ───────────────────────────────────────────
@@ -76,6 +72,6 @@ class KodeAkun extends Model
 
     public function isHeader(): bool
     {
-        return str_ends_with($this->kode, '.00');
+        return blank($this->sub_kategori);
     }
 }

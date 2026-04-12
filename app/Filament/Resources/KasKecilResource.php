@@ -13,7 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class KasKecilResource extends Resource
 {
@@ -51,16 +51,8 @@ class KasKecilResource extends Resource
                         ->required()
                         ->searchable()
                         ->preload()
-                        ->options(function () {
-                            return KodeAkun::where('tipe', 'pengeluaran')
-                                ->where('aktif', true)
-                                ->whereRaw("RIGHT(kode, 2) != '00'")
-                                ->orderBy('kode')
-                                ->get()
-                                ->mapWithKeys(fn ($k) => [
-                                    $k->id => "[{$k->kode}] {$k->nama}"
-                                ]);
-                        })
+                        ->helperText('Kas kecil hanya memakai akun pengeluaran yang ditandai untuk kas kecil.')
+                        ->options(fn (): array => static::getKasKecilKodeAkunOptions())
                         ->columnSpan(1),
 
                     Forms\Components\Textarea::make('uraian')
@@ -157,10 +149,7 @@ class KasKecilResource extends Resource
                 Tables\Filters\SelectFilter::make('kode_akun_id')
                     ->label('Kode Akun')
                     ->searchable()
-                    ->options(fn () => KodeAkun::where('kas_kecil', true)
-                        ->where('aktif', true)
-                        ->orderBy('kode')
-                        ->pluck('nama', 'id')),
+                    ->options(fn (): array => static::getKasKecilKodeAkunOptions()),
             ])
             ->headerActions([
                 // Ringkasan saldo kas kecil
@@ -207,12 +196,9 @@ class KasKecilResource extends Resource
                     ])
                     ->action(function (array $data) {
                         PengisianKasKecil::create([
-                            'tanggal'     => $data['tanggal'],
-                            'nominal'     => $data['nominal'],
-                            'keterangan'  => $data['keterangan'] ?? null,
-                            'bulan'       => Carbon::parse($data['tanggal'])->month,
-                            'tahun'       => Carbon::parse($data['tanggal'])->year,
-                            'created_by'  => auth()->id(),
+                            'tanggal' => $data['tanggal'],
+                            'nominal' => $data['nominal'],
+                            'keterangan' => $data['keterangan'] ?? null,
                         ]);
                     })
                     ->successNotificationTitle('Pengisian kas kecil berhasil dicatat'),
@@ -252,5 +238,32 @@ class KasKecilResource extends Resource
                 ->where('tahun', now()->year)
                 ->count()
         );
+    }
+
+    public static function prepareFormDataBeforeSave(array $data): array
+    {
+        $kodeAkun = KodeAkun::find($data['kode_akun_id'] ?? null);
+
+        if (! $kodeAkun || ! $kodeAkun->aktif || ! $kodeAkun->kas_kecil || $kodeAkun->tipe !== 'pengeluaran') {
+            throw ValidationException::withMessages([
+                'kode_akun_id' => 'Pilih kode akun pengeluaran yang memang ditandai untuk kas kecil.',
+            ]);
+        }
+
+        return $data;
+    }
+
+    protected static function getKasKecilKodeAkunOptions(): array
+    {
+        return KodeAkun::query()
+            ->transaksional()
+            ->pengeluaran()
+            ->untukKasKecil()
+            ->orderBy('kode')
+            ->get()
+            ->mapWithKeys(fn (KodeAkun $kodeAkun) => [
+                $kodeAkun->id => $kodeAkun->label,
+            ])
+            ->all();
     }
 }

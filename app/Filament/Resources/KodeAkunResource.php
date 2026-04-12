@@ -136,9 +136,14 @@ class KodeAkunResource extends Resource
                 Actions\EditAction::make(),
             ])
             ->bulkActions([
-                Actions\BulkActionGroup::make([
-                    Actions\DeleteBulkAction::make(),
-                ]),
+                Actions\BulkAction::make('nonaktifkan')
+                    ->label('Nonaktifkan')
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->deselectRecordsAfterCompletion()
+                    ->visible(fn (): bool => auth()->user()?->hasPermissionTo('edit_kode_akun') ?? false)
+                    ->action(fn ($records) => $records->each->update(['aktif' => false])),
             ])
             ->defaultSort('kode')
             ->striped();
