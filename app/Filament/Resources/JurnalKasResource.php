@@ -16,6 +16,7 @@ use Filament\Tables\Table;
 use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class JurnalKasResource extends Resource
 {
@@ -284,8 +285,17 @@ class JurnalKasResource extends Resource
                     ->label(function () {
                         $bulan = now()->month;
                         $tahun = now()->year;
-                        $masuk  = JurnalKas::where('bulan', $bulan)->where('tahun', $tahun)->where('jenis', 'masuk')->selectRaw('SUM(cash+bank) as total')->value('total') ?? 0;
-                        $keluar = JurnalKas::where('bulan', $bulan)->where('tahun', $tahun)->where('jenis', 'keluar')->selectRaw('SUM(cash+bank) as total')->value('total') ?? 0;
+                        $masuk = (float) JurnalKas::query()
+                            ->where('bulan', $bulan)
+                            ->where('tahun', $tahun)
+                            ->where('jenis', 'masuk')
+                            ->sum(DB::raw('cash + bank'));
+                        $keluar = (float) JurnalKas::query()
+                            ->where('bulan', $bulan)
+                            ->where('tahun', $tahun)
+                            ->where('jenis', 'keluar')
+                            ->sum(DB::raw('cash + bank'));
+
                         return 'Bulan ini: Masuk ' . 'Rp ' . number_format($masuk,0,',','.') . ' | Keluar Rp ' . number_format($keluar,0,',','.');
                     })
                     ->disabled()

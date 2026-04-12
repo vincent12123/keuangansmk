@@ -9,6 +9,7 @@ use App\Models\PengisianKasKecil;
 use App\Models\Siswa;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 
 class RingkasanBulanWidget extends BaseWidget
@@ -25,14 +26,12 @@ class RingkasanBulanWidget extends BaseWidget
         $totalMasuk = JurnalKas::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->where('jenis', 'masuk')
-            ->selectRaw('SUM(cash + bank) as total')
-            ->value('total') ?? 0;
+            ->sum(DB::raw('cash + bank'));
 
         $totalKeluarBesar = JurnalKas::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->where('jenis', 'keluar')
-            ->selectRaw('SUM(cash + bank) as total')
-            ->value('total') ?? 0;
+            ->sum(DB::raw('cash + bank'));
 
         $totalKasKecil = KasKecil::where('bulan', $bulan)
             ->where('tahun', $tahun)
@@ -43,8 +42,8 @@ class RingkasanBulanWidget extends BaseWidget
         $totalSiswaAktif = Siswa::aktif()->count();
         $sudahBayar = KartuSpp::where('bulan', $bulan)
             ->where('tahun', $tahun)
-            ->distinct('nis')
-            ->count();
+            ->distinct()
+            ->count('nis');
         $belumBayar = $totalSiswaAktif - $sudahBayar;
 
         $pengisian = PengisianKasKecil::where('bulan', $bulan)

@@ -77,6 +77,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             KodeAkunSeeder::class,
             JurusanKelasSeeder::class,
+            SiswaSeeder::class,
         ]);
 
         // ─── User admin default ──────────────────────────────
