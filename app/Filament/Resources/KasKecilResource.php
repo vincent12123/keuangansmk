@@ -6,8 +6,8 @@ use App\Models\KasKecil;
 use App\Models\KodeAkun;
 use App\Models\PengisianKasKecil;
 use Filament\Forms;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -28,7 +28,7 @@ class KasKecilResource extends Resource
     public static function form(Schema $form): Schema
     {
         return $form->schema([
-            Forms\Components\Section::make('Detail Pengeluaran')
+            Section::make('Detail Pengeluaran')
                 ->columns(3)
                 ->schema([
                     Forms\Components\DatePicker::make('tanggal')

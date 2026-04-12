@@ -7,6 +7,9 @@ use App\Models\Jurusan;
 use App\Models\Kelas;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -25,7 +28,7 @@ class SiswaResource extends Resource
     public static function form(Schema $form): Schema
     {
         return $form->schema([
-            Forms\Components\Section::make('Identitas Siswa')
+            Section::make('Identitas Siswa')
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('nis')
@@ -48,12 +51,12 @@ class SiswaResource extends Resource
                         ->searchable()
                         ->preload()
                         ->live()
-                        ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('kelas_id', null)),
+                        ->afterStateUpdated(fn ($state, Set $set) => $set('kelas_id', null)),
 
                     Forms\Components\Select::make('kelas_id')
                         ->label('Kelas')
                         ->required()
-                        ->options(function (Forms\Get $get) {
+                        ->options(function (Get $get) {
                             $jurusanId = $get('jurusan_id');
                             if (! $jurusanId) return [];
                             return Kelas::where('jurusan_id', $jurusanId)
@@ -83,7 +86,7 @@ class SiswaResource extends Resource
                         ->minValue(0),
                 ]),
 
-            Forms\Components\Section::make('Data Wali & Kontak')
+            Section::make('Data Wali & Kontak')
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('nama_wali')
@@ -97,7 +100,7 @@ class SiswaResource extends Resource
                         ->helperText('Format internasional (628xxx) untuk notifikasi WA'),
                 ]),
 
-            Forms\Components\Section::make('Status')
+            Section::make('Status')
                 ->schema([
                     Forms\Components\Select::make('status')
                         ->label('Status Siswa')
@@ -185,7 +188,7 @@ class SiswaResource extends Resource
                     ->label('Kartu SPP')
                     ->icon('heroicon-o-document-text')
                     ->color('info')
-                    ->url(fn (Siswa $record) => route('filament.admin.resources.kartu-spp.index', ['nis' => $record->nis])),
+                    ->url(fn (Siswa $record) => KartuSppResource::getUrl('index', ['nis' => $record->nis])),
                 Actions\EditAction::make(),
             ])
             ->bulkActions([

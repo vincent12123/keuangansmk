@@ -3,10 +3,10 @@
 namespace App\Filament\Widgets;
 
 use App\Models\JurnalKas;
+use App\Models\KartuSpp;
 use App\Models\KasKecil;
 use App\Models\PengisianKasKecil;
 use App\Models\Siswa;
-use App\Models\KartuSpp;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Number;
@@ -14,37 +14,32 @@ use Illuminate\Support\Number;
 class RingkasanBulanWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
+
     protected ?string $heading = null;
 
     protected function getStats(): array
     {
-        $bulan  = now()->month;
-        $tahun  = now()->year;
-        $bln    = now()->format('F Y');
+        $bulan = now()->month;
+        $tahun = now()->year;
 
-        // ── Total penerimaan bulan ini ─────────────────────
         $totalMasuk = JurnalKas::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->where('jenis', 'masuk')
             ->selectRaw('SUM(cash + bank) as total')
             ->value('total') ?? 0;
 
-        // ── Total pengeluaran besar (via bank) ─────────────
         $totalKeluarBesar = JurnalKas::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->where('jenis', 'keluar')
             ->selectRaw('SUM(cash + bank) as total')
             ->value('total') ?? 0;
 
-        // ── Total kas kecil bulan ini ──────────────────────
         $totalKasKecil = KasKecil::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->sum('nominal');
 
-        // ── Saldo bersih ───────────────────────────────────
         $saldoBersih = $totalMasuk - $totalKeluarBesar - $totalKasKecil;
 
-        // ── Siswa belum bayar SPP bulan ini ───────────────
         $totalSiswaAktif = Siswa::aktif()->count();
         $sudahBayar = KartuSpp::where('bulan', $bulan)
             ->where('tahun', $tahun)
@@ -52,7 +47,6 @@ class RingkasanBulanWidget extends BaseWidget
             ->count();
         $belumBayar = $totalSiswaAktif - $sudahBayar;
 
-        // ── Saldo kas kecil ────────────────────────────────
         $pengisian = PengisianKasKecil::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->sum('nominal');

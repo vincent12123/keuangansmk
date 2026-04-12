@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\Pages;
 
 use App\Filament\Resources\KartuSppResource;
+use App\Models\Jurusan;
 use App\Models\Siswa;
 use App\Models\KartuSpp;
-use Filament\Resources\Pages\Page;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Resources\Pages\Page;
 use Livewire\Attributes\Computed;
 
 class TunggakanSpp extends Page implements HasForms
@@ -16,7 +16,7 @@ class TunggakanSpp extends Page implements HasForms
     use InteractsWithForms;
 
     protected static string $resource = KartuSppResource::class;
-    protected string $view = 'filament.resources.kartu-spp.tunggakan';
+    protected string $view = 'filament.resources.kartu-spps.tunggakan';
 
     public int $bulan;
     public int $tahun;
@@ -71,5 +71,14 @@ class TunggakanSpp extends Page implements HasForms
             7=>'Juli',    8=>'Agustus',   9=>'September',
             10=>'Oktober',11=>'November', 12=>'Desember',
         ][$this->bulan] ?? (string) $this->bulan;
+    }
+
+    #[Computed]
+    public function jurusanOptions(): array
+    {
+        return Jurusan::aktif()
+            ->orderBy('nama')
+            ->pluck('nama', 'id')
+            ->all();
     }
 }

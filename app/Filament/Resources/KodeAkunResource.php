@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Models\KodeAkun;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -23,7 +24,7 @@ class KodeAkunResource extends Resource
     public static function form(Schema $form): Schema
     {
         return $form->schema([
-            Forms\Components\Section::make('Informasi Kode Akun')
+            Section::make('Informasi Kode Akun')
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('kode')
@@ -63,7 +64,7 @@ class KodeAkunResource extends Resource
                         ->columnSpan(1),
                 ]),
 
-            Forms\Components\Section::make('Pengaturan')
+            Section::make('Pengaturan')
                 ->columns(2)
                 ->schema([
                     Forms\Components\Toggle::make('aktif')

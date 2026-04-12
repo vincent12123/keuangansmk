@@ -8,9 +8,10 @@ use App\Models\Siswa;
 use App\Models\Kelas;
 use App\Models\KartuSpp;
 use Filament\Forms;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -32,7 +33,7 @@ class JurnalKasResource extends Resource
     {
         return $form->schema([
 
-            Forms\Components\Section::make('Informasi Transaksi')
+            Section::make('Informasi Transaksi')
                 ->columns(3)
                 ->schema([
                     Forms\Components\DatePicker::make('tanggal')
@@ -79,7 +80,7 @@ class JurnalKasResource extends Resource
                         ->columnSpan(1),
                 ]),
 
-            Forms\Components\Section::make('Data Penyetor / Penerima')
+            Section::make('Data Penyetor / Penerima')
                 ->columns(3)
                 ->description('Isi untuk transaksi penerimaan SPP dari siswa')
                 ->schema([
@@ -110,7 +111,7 @@ class JurnalKasResource extends Resource
                         ->columnSpan(1),
                 ]),
 
-            Forms\Components\Section::make('Detail Transaksi')
+            Section::make('Detail Transaksi')
                 ->columns(3)
                 ->schema([
                     Forms\Components\Textarea::make('uraian')
@@ -150,7 +151,7 @@ class JurnalKasResource extends Resource
                 ]),
 
             // Section khusus: auto-update Kartu SPP
-            Forms\Components\Section::make('Kartu SPP (opsional)')
+            Section::make('Kartu SPP (opsional)')
                 ->description('Jika transaksi ini adalah pembayaran SPP, pilih bulan yang dibayar')
                 ->collapsed()
                 ->schema([

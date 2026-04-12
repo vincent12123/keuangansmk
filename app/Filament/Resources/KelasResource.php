@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Models\Kelas;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -21,7 +22,7 @@ class KelasResource extends Resource
     public static function form(Schema $form): Schema
     {
         return $form->schema([
-            Forms\Components\Section::make()->columns(2)->schema([
+            Section::make()->columns(2)->schema([
                 Forms\Components\Select::make('jurusan_id')
                     ->label('Jurusan')
                     ->required()

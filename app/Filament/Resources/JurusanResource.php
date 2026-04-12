@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\KodeAkun;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -24,7 +25,7 @@ class JurusanResource extends Resource
     public static function form(Schema $form): Schema
     {
         return $form->schema([
-            Forms\Components\Section::make()->columns(2)->schema([
+            Section::make()->columns(2)->schema([
                 Forms\Components\TextInput::make('kode')
                     ->label('Kode Jurusan')
                     ->required()
