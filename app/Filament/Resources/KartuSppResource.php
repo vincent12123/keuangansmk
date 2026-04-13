@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Models\KartuSpp;
 use App\Models\Siswa;
+use App\Services\Reports\SaldoKasService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
@@ -13,6 +14,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 class KartuSppResource extends Resource
 {
@@ -235,5 +237,20 @@ class KartuSppResource extends Resource
             range($tahunSekarang + 1, $tahunSekarang - 5),
             range($tahunSekarang + 1, $tahunSekarang - 5),
         );
+    }
+
+    public static function prepareFormDataBeforeSave(array $data): array
+    {
+        $bulan = (int) ($data['bulan'] ?? now()->month);
+        $tahun = (int) ($data['tahun'] ?? now()->year);
+
+        if (app(SaldoKasService::class)->isLocked($bulan, $tahun)) {
+            throw ValidationException::withMessages([
+                'bulan' => 'Periode SPP ini sudah dikunci. Buka kunci bulan terlebih dahulu jika ingin mengubah data.',
+                'tahun' => 'Periode SPP ini sudah dikunci. Buka kunci bulan terlebih dahulu jika ingin mengubah data.',
+            ]);
+        }
+
+        return $data;
     }
 }

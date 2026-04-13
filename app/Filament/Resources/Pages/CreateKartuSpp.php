@@ -8,4 +8,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateKartuSpp extends CreateRecord
 {
     protected static string $resource = KartuSppResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return KartuSppResource::prepareFormDataBeforeSave($data);
+    }
 }

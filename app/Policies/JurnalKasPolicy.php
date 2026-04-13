@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\JurnalKas;
 use App\Models\User;
+use App\Services\Reports\SaldoKasService;
 class JurnalKasPolicy
 {
     public function viewAny(User $user): bool
@@ -29,10 +30,11 @@ class JurnalKasPolicy
 
         // Admin bisa edit kapan saja
         if ($user->isAdmin()) {
-            return true;
+            return ! app(SaldoKasService::class)->isLocked($jurnal->bulan, $jurnal->tahun);
         }
 
-        return $jurnal->created_at?->gte(now()->subDays(3)) ?? false;
+        return ($jurnal->created_at?->gte(now()->subDays(3)) ?? false)
+            && ! app(SaldoKasService::class)->isLocked($jurnal->bulan, $jurnal->tahun);
     }
 
     public function delete(User $user, JurnalKas $jurnal): bool
@@ -46,14 +48,12 @@ class JurnalKasPolicy
             return false;
         }
 
-        // Tidak boleh hapus jika sudah ada di laporan bulan yang dikunci
-        // (implementasi lanjutan: cek saldo_kas_bulanan.is_locked)
-        return true;
+        return ! app(SaldoKasService::class)->isLocked($jurnal->bulan, $jurnal->tahun);
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->isAdmin();
+        return false;
     }
 
     public function restore(User $user, JurnalKas $jurnal): bool

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Models\KasKecil;
 use App\Models\KodeAkun;
 use App\Models\PengisianKasKecil;
+use App\Services\Reports\SaldoKasService;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -195,6 +196,14 @@ class KasKecilResource extends Resource
                             ->rows(2),
                     ])
                     ->action(function (array $data) {
+                        $tanggal = \Illuminate\Support\Carbon::parse($data['tanggal']);
+
+                        if (app(SaldoKasService::class)->isLocked($tanggal->month, $tanggal->year)) {
+                            throw ValidationException::withMessages([
+                                'tanggal' => 'Bulan pengisian ini sudah dikunci. Buka kunci bulan terlebih dahulu jika ingin mengubah data.',
+                            ]);
+                        }
+
                         PengisianKasKecil::create([
                             'tanggal' => $data['tanggal'],
                             'nominal' => $data['nominal'],
@@ -242,6 +251,14 @@ class KasKecilResource extends Resource
 
     public static function prepareFormDataBeforeSave(array $data): array
     {
+        $tanggal = \Illuminate\Support\Carbon::parse($data['tanggal'] ?? now());
+
+        if (app(SaldoKasService::class)->isLocked($tanggal->month, $tanggal->year)) {
+            throw ValidationException::withMessages([
+                'tanggal' => 'Bulan transaksi ini sudah dikunci. Buka kunci bulan terlebih dahulu jika ingin mengubah data.',
+            ]);
+        }
+
         $kodeAkun = KodeAkun::find($data['kode_akun_id'] ?? null);
 
         if (! $kodeAkun || ! $kodeAkun->aktif || ! $kodeAkun->kas_kecil || $kodeAkun->tipe !== 'pengeluaran') {

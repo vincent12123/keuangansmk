@@ -26,6 +26,7 @@ class PettyCashReportService
             'total_pengisian' => $pengisian,
             'total_pengeluaran' => $pengeluaran,
             'saldo' => $pengisian - $pengeluaran,
+            'validation_diff' => abs($pengeluaran - app(CashFlowReportService::class)->build($bulan, $tahun)['total_kas_kecil']),
             'transactions' => $this->getTransactions($bulan, $tahun),
             'pivot' => $this->getPivot($bulan, $tahun),
         ];

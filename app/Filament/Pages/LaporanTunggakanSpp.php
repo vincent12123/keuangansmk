@@ -16,9 +16,11 @@ class LaporanTunggakanSpp extends Page
 
     protected static ?string $navigationLabel = 'Rekap Tunggakan SPP';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $title = 'Rekap Tunggakan SPP';
+
+    protected static ?string $slug = 'laporan/tunggakan-spp';
 
     protected string $view = 'filament.pages.laporan-tunggakan-spp';
 

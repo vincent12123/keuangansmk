@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Services\Reports\CashFlowReportService;
+use App\Services\Reports\SaldoKasService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
@@ -18,6 +19,8 @@ class LaporanArusKas extends Page
     protected static ?int $navigationSort = 1;
 
     protected static ?string $title = 'Laporan Arus Kas Bulanan';
+
+    protected static ?string $slug = 'laporan/arus-kas';
 
     protected string $view = 'filament.pages.laporan-arus-kas';
 
@@ -55,7 +58,7 @@ class LaporanArusKas extends Page
     public function simpanSaldoAwal(): void
     {
         $this->authorizeAdminAction();
-        $service = app(CashFlowReportService::class);
+        $service = app(SaldoKasService::class);
 
         $service->saveOpeningBalance(
             $this->bulan,
@@ -75,7 +78,7 @@ class LaporanArusKas extends Page
     public function kunciBulan(): void
     {
         $this->authorizeAdminAction();
-        $service = app(CashFlowReportService::class);
+        $service = app(SaldoKasService::class);
 
         $service->saveOpeningBalance(
             $this->bulan,
@@ -84,10 +87,23 @@ class LaporanArusKas extends Page
             (float) $this->saldoAwalBank,
         );
         $service->lockPeriod($this->bulan, $this->tahun);
-        $this->syncOpeningBalance($service);
+        $this->syncOpeningBalance();
 
         Notification::make()
             ->title('Bulan berhasil dikunci dan saldo bulan berikutnya sudah disiapkan.')
+            ->success()
+            ->send();
+    }
+
+    public function bukaKunciBulan(): void
+    {
+        $this->authorizeAdminAction();
+
+        app(SaldoKasService::class)->unlockPeriod($this->bulan, $this->tahun);
+        $this->syncOpeningBalance();
+
+        Notification::make()
+            ->title('Bulan berhasil dibuka. Saldo awal bulan berikutnya direset untuk perhitungan ulang.')
             ->success()
             ->send();
     }
@@ -130,11 +146,10 @@ class LaporanArusKas extends Page
 
     protected function syncOpeningBalance(): void
     {
-        $service = app(CashFlowReportService::class);
-        $report = $service->build($this->bulan, $this->tahun);
+        $opening = app(SaldoKasService::class)->getOpeningBalance($this->bulan, $this->tahun);
 
-        $this->saldoAwalCash = (float) $report['saldo_awal_cash'];
-        $this->saldoAwalBank = (float) $report['saldo_awal_bank'];
+        $this->saldoAwalCash = (float) $opening['cash'];
+        $this->saldoAwalBank = (float) $opening['bank'];
     }
 
     protected function authorizeAdminAction(): void

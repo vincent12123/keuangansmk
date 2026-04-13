@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-4">
+        <div class="grid gap-4 md:grid-cols-5">
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <div class="text-sm text-gray-500">Siswa Aktif</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{{ $report['total_siswa_aktif'] }}</div>
@@ -61,11 +61,50 @@
             </div>
 
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-amber-800 dark:bg-amber-900/20">
+                <div class="text-sm text-amber-700 dark:text-amber-300">Total Nominal Masuk</div>
+                <div class="mt-2 text-2xl font-semibold text-amber-800 dark:text-amber-200">
+                    Rp {{ number_format($report['total_nominal_masuk'], 0, ',', '.') }}
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm dark:border-orange-800 dark:bg-orange-900/20">
                 <div class="text-sm text-amber-700 dark:text-amber-300">Total Nominal Tunggakan</div>
                 <div class="mt-2 text-2xl font-semibold text-amber-800 dark:text-amber-200">
                     Rp {{ number_format($report['total_nominal_tunggakan'], 0, ',', '.') }}
                 </div>
             </div>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
+                Statistik Per Jurusan
+            </div>
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Jurusan</th>
+                        <th class="px-4 py-3 text-right">Total Siswa</th>
+                        <th class="px-4 py-3 text-right">Sudah Bayar</th>
+                        <th class="px-4 py-3 text-right">Belum Bayar</th>
+                        <th class="px-4 py-3 text-right">% Lunas</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse ($report['stats_per_jurusan'] as $row)
+                        <tr>
+                            <td class="px-4 py-3">{{ $row['jurusan'] }} ({{ $row['kode'] }})</td>
+                            <td class="px-4 py-3 text-right">{{ $row['total'] }}</td>
+                            <td class="px-4 py-3 text-right text-emerald-700">{{ $row['sudah_bayar'] }}</td>
+                            <td class="px-4 py-3 text-right text-rose-700">{{ $row['belum_bayar'] }}</td>
+                            <td class="px-4 py-3 text-right font-medium">{{ number_format($row['persen_lunas'], 1, ',', '.') }}%</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-4 py-6 text-center text-gray-400">Belum ada data jurusan untuk filter ini.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
 
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">

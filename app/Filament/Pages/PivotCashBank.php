@@ -2,25 +2,25 @@
 
 namespace App\Filament\Pages;
 
-use App\Services\Reports\PettyCashReportService;
+use App\Services\Reports\PivotCashBankReportService;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
 
-class LaporanKasKecil extends Page
+class PivotCashBank extends Page
 {
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-wallet';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-building-library';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Laporan';
 
-    protected static ?string $navigationLabel = 'Pivot Kas Kecil';
+    protected static ?string $navigationLabel = 'Pivot Cash & Bank';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 3;
 
-    protected static ?string $title = 'Pivot Rekap Kas Kecil Bulanan';
+    protected static ?string $title = 'Pivot Rekap Cash & Bank';
 
-    protected static ?string $slug = 'laporan/pivot-kas-kecil';
+    protected static ?string $slug = 'laporan/pivot-cash-bank';
 
-    protected string $view = 'filament.pages.laporan-kas-kecil';
+    protected string $view = 'filament.pages.pivot-cash-bank';
 
     public int $bulan;
 
@@ -42,7 +42,7 @@ class LaporanKasKecil extends Page
     #[Computed]
     public function reportData(): array
     {
-        return app(PettyCashReportService::class)->build($this->bulan, $this->tahun);
+        return app(PivotCashBankReportService::class)->build($this->bulan, $this->tahun);
     }
 
     #[Computed]

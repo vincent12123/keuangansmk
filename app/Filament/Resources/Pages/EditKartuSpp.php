@@ -10,6 +10,11 @@ class EditKartuSpp extends EditRecord
 {
     protected static string $resource = KartuSppResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return KartuSppResource::prepareFormDataBeforeSave($data);
+    }
+
     protected function getHeaderActions(): array
     {
         return [

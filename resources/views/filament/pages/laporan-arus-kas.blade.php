@@ -52,147 +52,158 @@
                     </x-filament::button>
 
                     <x-filament::button wire:click="kunciBulan" color="success" :disabled="$report['is_locked']">
-                        Kunci Bulan Ini
+                        Kunci Bulan
+                    </x-filament::button>
+
+                    <x-filament::button wire:click="bukaKunciBulan" color="warning" :disabled="! $report['is_locked']">
+                        Buka Kunci
                     </x-filament::button>
                 </div>
             @endif
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div class="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="text-sm text-gray-500">Saldo Awal</div>
+                <div class="text-sm text-gray-500">A. Saldo Awal</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
                     Rp {{ number_format($report['saldo_awal_total'], 0, ',', '.') }}
-                </div>
-                <div class="mt-2 text-xs text-gray-500">
-                    Cash Rp {{ number_format($report['saldo_awal_cash'], 0, ',', '.') }} | Bank Rp {{ number_format($report['saldo_awal_bank'], 0, ',', '.') }}
                 </div>
             </div>
 
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm dark:border-emerald-800 dark:bg-emerald-900/20">
-                <div class="text-sm text-emerald-700 dark:text-emerald-300">Total Penerimaan</div>
+                <div class="text-sm text-emerald-700 dark:text-emerald-300">B. Total Penerimaan</div>
                 <div class="mt-2 text-2xl font-semibold text-emerald-800 dark:text-emerald-200">
                     Rp {{ number_format($report['total_masuk'], 0, ',', '.') }}
-                </div>
-                <div class="mt-2 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-                    Cash Rp {{ number_format($report['total_masuk_cash'], 0, ',', '.') }} | Bank Rp {{ number_format($report['total_masuk_bank'], 0, ',', '.') }}
                 </div>
             </div>
 
             <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm dark:border-rose-800 dark:bg-rose-900/20">
-                <div class="text-sm text-rose-700 dark:text-rose-300">Pengeluaran Besar</div>
+                <div class="text-sm text-rose-700 dark:text-rose-300">C. Total Pengeluaran</div>
                 <div class="mt-2 text-2xl font-semibold text-rose-800 dark:text-rose-200">
-                    Rp {{ number_format($report['total_keluar_besar'], 0, ',', '.') }}
-                </div>
-                <div class="mt-2 text-xs text-rose-700/80 dark:text-rose-300/80">
-                    Cash Rp {{ number_format($report['total_keluar_besar_cash'], 0, ',', '.') }} | Bank Rp {{ number_format($report['total_keluar_besar_bank'], 0, ',', '.') }}
+                    Rp {{ number_format($report['total_pengeluaran'], 0, ',', '.') }}
                 </div>
             </div>
 
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-amber-800 dark:bg-amber-900/20">
-                <div class="text-sm text-amber-700 dark:text-amber-300">Kas Kecil</div>
+                <div class="text-sm text-amber-700 dark:text-amber-300">Selisih</div>
                 <div class="mt-2 text-2xl font-semibold text-amber-800 dark:text-amber-200">
-                    Rp {{ number_format($report['total_kas_kecil'], 0, ',', '.') }}
-                </div>
-                <div class="mt-2 text-xs text-amber-700/80 dark:text-amber-300/80">
-                    Pengeluaran petty cash bulan ini
+                    Rp {{ number_format($report['selisih'], 0, ',', '.') }}
                 </div>
             </div>
 
             <div class="rounded-xl border border-sky-200 bg-sky-50 p-4 shadow-sm dark:border-sky-800 dark:bg-sky-900/20">
-                <div class="text-sm text-sky-700 dark:text-sky-300">Saldo Akhir</div>
+                <div class="text-sm text-sky-700 dark:text-sky-300">D. Saldo Akhir</div>
                 <div class="mt-2 text-2xl font-semibold text-sky-800 dark:text-sky-200">
                     Rp {{ number_format($report['saldo_akhir_total'], 0, ',', '.') }}
                 </div>
-                <div class="mt-2 text-xs text-sky-700/80 dark:text-sky-300/80">
-                    Cash Rp {{ number_format($report['saldo_akhir_cash'], 0, ',', '.') }} | Bank Rp {{ number_format($report['saldo_akhir_bank'], 0, ',', '.') }}
+            </div>
+
+            <div class="rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-sm dark:border-violet-800 dark:bg-violet-900/20">
+                <div class="text-sm text-violet-700 dark:text-violet-300">Kas Besar / Kecil</div>
+                <div class="mt-2 text-sm font-semibold text-violet-800 dark:text-violet-200">
+                    D1 Rp {{ number_format($report['saldo_kas_kecil'], 0, ',', '.') }}<br>
+                    D2 Rp {{ number_format($report['saldo_kas_besar'], 0, ',', '.') }}
                 </div>
             </div>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-3">
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
-                    Penerimaan
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
+                B. Penerimaan
+            </div>
+            <div class="space-y-4 p-4">
+                @foreach ($report['penerimaan_sections'] as $sectionKey => $section)
+                    <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-700">
+                            <div class="font-semibold text-gray-800 dark:text-gray-100">{{ $sectionKey }}. {{ $section['title'] }}</div>
+                            <div class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Rp {{ number_format($section['total'], 0, ',', '.') }}</div>
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead class="bg-white dark:bg-gray-800">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Kode</th>
+                                    <th class="px-4 py-2 text-left">Nama Akun</th>
+                                    <th class="px-4 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                @forelse ($section['rows'] as $row)
+                                    <tr>
+                                        <td class="px-4 py-2 font-mono text-xs">{{ $row['kode'] }}</td>
+                                        <td class="px-4 py-2">{{ $row['nama'] }}</td>
+                                        <td class="px-4 py-2 text-right font-medium text-emerald-700">Rp {{ number_format($row['total'], 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-4 text-center text-gray-400">Tidak ada transaksi pada kelompok ini.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
+                C. Pengeluaran
+            </div>
+            <div class="space-y-4 p-4">
+                @foreach ($report['pengeluaran_sections'] as $sectionKey => $section)
+                    <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-700">
+                            <div class="font-semibold text-gray-800 dark:text-gray-100">{{ $sectionKey }}. {{ $section['title'] }}</div>
+                            <div class="text-sm font-semibold text-rose-700 dark:text-rose-300">Rp {{ number_format($section['total'], 0, ',', '.') }}</div>
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead class="bg-white dark:bg-gray-800">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Kode</th>
+                                    <th class="px-4 py-2 text-left">Nama Akun</th>
+                                    <th class="px-4 py-2 text-right">Total Gabungan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                @forelse ($section['rows'] as $row)
+                                    <tr>
+                                        <td class="px-4 py-2 font-mono text-xs">{{ $row['kode'] }}</td>
+                                        <td class="px-4 py-2">{{ $row['nama'] }}</td>
+                                        <td class="px-4 py-2 text-right font-medium text-rose-700">Rp {{ number_format($row['total'], 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-4 text-center text-gray-400">Tidak ada transaksi pada kelompok ini.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">D1. Saldo Kas Kecil</div>
+                <div class="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <div>Pengisian Kas Kecil: <span class="font-semibold">Rp {{ number_format($report['total_pengisian_kas_kecil'], 0, ',', '.') }}</span></div>
+                    <div>Pengeluaran Kas Kecil: <span class="font-semibold">Rp {{ number_format($report['total_kas_kecil'], 0, ',', '.') }}</span></div>
+                    <div class="border-t border-gray-200 pt-2 font-semibold dark:border-gray-700">
+                        Saldo Kas Kecil: Rp {{ number_format($report['saldo_kas_kecil'], 0, ',', '.') }}
+                    </div>
                 </div>
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-2 text-left">Kode</th>
-                            <th class="px-4 py-2 text-left">Akun</th>
-                            <th class="px-4 py-2 text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        @forelse ($report['penerimaan'] as $row)
-                            <tr>
-                                <td class="px-4 py-2 font-mono text-xs">{{ $row['kode'] }}</td>
-                                <td class="px-4 py-2">{{ $row['nama'] }}</td>
-                                <td class="px-4 py-2 text-right font-medium text-emerald-700">Rp {{ number_format($row['total'], 0, ',', '.') }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-6 text-center text-gray-400">Belum ada penerimaan.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
-                    Pengeluaran Besar
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">D2. Saldo Kas Besar</div>
+                <div class="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <div>Saldo Akhir Operasional (D): <span class="font-semibold">Rp {{ number_format($report['saldo_akhir_total'], 0, ',', '.') }}</span></div>
+                    <div>Saldo Kas Kecil (D1): <span class="font-semibold">Rp {{ number_format($report['saldo_kas_kecil'], 0, ',', '.') }}</span></div>
+                    <div class="border-t border-gray-200 pt-2 font-semibold dark:border-gray-700">
+                        Saldo Kas Besar: Rp {{ number_format($report['saldo_kas_besar'], 0, ',', '.') }}
+                    </div>
                 </div>
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-2 text-left">Kode</th>
-                            <th class="px-4 py-2 text-left">Akun</th>
-                            <th class="px-4 py-2 text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        @forelse ($report['pengeluaran_besar'] as $row)
-                            <tr>
-                                <td class="px-4 py-2 font-mono text-xs">{{ $row['kode'] }}</td>
-                                <td class="px-4 py-2">{{ $row['nama'] }}</td>
-                                <td class="px-4 py-2 text-right font-medium text-rose-700">Rp {{ number_format($row['total'], 0, ',', '.') }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-6 text-center text-gray-400">Belum ada pengeluaran besar.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
-                    Pengeluaran Kas Kecil
-                </div>
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-2 text-left">Kode</th>
-                            <th class="px-4 py-2 text-left">Akun</th>
-                            <th class="px-4 py-2 text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        @forelse ($report['pengeluaran_kas_kecil'] as $row)
-                            <tr>
-                                <td class="px-4 py-2 font-mono text-xs">{{ $row['kode'] }}</td>
-                                <td class="px-4 py-2">{{ $row['nama'] }}</td>
-                                <td class="px-4 py-2 text-right font-medium text-amber-700">Rp {{ number_format($row['total'], 0, ',', '.') }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-6 text-center text-gray-400">Belum ada pengeluaran kas kecil.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>

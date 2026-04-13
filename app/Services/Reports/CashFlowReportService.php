@@ -4,8 +4,6 @@ namespace App\Services\Reports;
 
 use App\Models\JurnalKas;
 use App\Models\KasKecil;
-use App\Models\KodeAkun;
-use App\Models\SaldoKasBulanan;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -13,9 +11,18 @@ class CashFlowReportService
 {
     public function build(int $bulan, int $tahun): array
     {
-        $opening = $this->resolveOpeningBalance($bulan, $tahun);
+        $opening = app(SaldoKasService::class)->getOpeningBalance($bulan, $tahun);
         $movements = $this->getMovementTotals($bulan, $tahun);
+        $penerimaanSections = $this->getIncomingSections($bulan, $tahun);
+        $pengeluaranSections = $this->getExpenseSections($bulan, $tahun);
+        $totalPenerimaan = (float) collect($penerimaanSections)->sum('total');
+        $totalPengeluaran = (float) collect($pengeluaranSections)->sum('total');
+        $selisih = $totalPenerimaan - $totalPengeluaran;
+        $saldoAkhirTotal = ($opening['cash'] + $opening['bank']) + $selisih;
+        $saldoKasKecil = $movements['pengisian_kas_kecil'] - $movements['kas_kecil'];
+        $saldoKasBesar = $saldoAkhirTotal - $saldoKasKecil;
 
+        // Cash/bank split tetap dipertahankan untuk carry saldo awal bulan berikutnya.
         $saldoAkhirCash = $opening['cash'] + $movements['masuk_cash'] - $movements['keluar_cash'] - $movements['kas_kecil'];
         $saldoAkhirBank = $opening['bank'] + $movements['masuk_bank'] - $movements['keluar_bank'];
 
@@ -29,65 +36,22 @@ class CashFlowReportService
             'saldo_awal_total' => $opening['cash'] + $opening['bank'],
             'total_masuk_cash' => $movements['masuk_cash'],
             'total_masuk_bank' => $movements['masuk_bank'],
-            'total_masuk' => $movements['masuk_cash'] + $movements['masuk_bank'],
+            'total_masuk' => $totalPenerimaan,
             'total_keluar_besar_cash' => $movements['keluar_cash'],
             'total_keluar_besar_bank' => $movements['keluar_bank'],
             'total_keluar_besar' => $movements['keluar_cash'] + $movements['keluar_bank'],
             'total_kas_kecil' => $movements['kas_kecil'],
+            'total_pengisian_kas_kecil' => $movements['pengisian_kas_kecil'],
+            'total_pengeluaran' => $totalPengeluaran,
+            'selisih' => $selisih,
             'saldo_akhir_cash' => $saldoAkhirCash,
             'saldo_akhir_bank' => $saldoAkhirBank,
-            'saldo_akhir_total' => $saldoAkhirCash + $saldoAkhirBank,
-            'penerimaan' => $this->getGroupedJurnal($bulan, $tahun, 'masuk'),
-            'pengeluaran_besar' => $this->getGroupedJurnal($bulan, $tahun, 'keluar'),
-            'pengeluaran_kas_kecil' => $this->getGroupedKasKecil($bulan, $tahun),
+            'saldo_akhir_total' => $saldoAkhirTotal,
+            'saldo_kas_kecil' => $saldoKasKecil,
+            'saldo_kas_besar' => $saldoKasBesar,
+            'penerimaan_sections' => $penerimaanSections,
+            'pengeluaran_sections' => $pengeluaranSections,
         ];
-    }
-
-    public function saveOpeningBalance(int $bulan, int $tahun, float $cash, float $bank): SaldoKasBulanan
-    {
-        $record = SaldoKasBulanan::query()->bulanTahun($bulan, $tahun)->first();
-
-        if ($record?->is_locked) {
-            throw new \RuntimeException('Bulan ini sudah dikunci dan saldo awal tidak bisa diubah.');
-        }
-
-        return SaldoKasBulanan::updateOrCreate(
-            ['bulan' => $bulan, 'tahun' => $tahun],
-            [
-                'saldo_awal_cash' => $cash,
-                'saldo_awal_bank' => $bank,
-                'is_locked' => false,
-            ],
-        );
-    }
-
-    public function lockPeriod(int $bulan, int $tahun): void
-    {
-        $report = $this->build($bulan, $tahun);
-
-        SaldoKasBulanan::updateOrCreate(
-            ['bulan' => $bulan, 'tahun' => $tahun],
-            [
-                'saldo_awal_cash' => $report['saldo_awal_cash'],
-                'saldo_awal_bank' => $report['saldo_awal_bank'],
-                'is_locked' => true,
-            ],
-        );
-
-        [$nextMonth, $nextYear] = $this->nextPeriod($bulan, $tahun);
-
-        $nextRecord = SaldoKasBulanan::query()->bulanTahun($nextMonth, $nextYear)->first();
-
-        if (! $nextRecord || ! $nextRecord->is_locked) {
-            SaldoKasBulanan::updateOrCreate(
-                ['bulan' => $nextMonth, 'tahun' => $nextYear],
-                [
-                    'saldo_awal_cash' => $report['saldo_akhir_cash'],
-                    'saldo_awal_bank' => $report['saldo_akhir_bank'],
-                    'is_locked' => false,
-                ],
-            );
-        }
     }
 
     protected function getMovementTotals(int $bulan, int $tahun): array
@@ -115,12 +79,16 @@ class CashFlowReportService
                 ->where('bulan', $bulan)
                 ->where('tahun', $tahun)
                 ->sum('nominal'),
+            'pengisian_kas_kecil' => (float) DB::table('pengisian_kas_kecil')
+                ->where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->sum('nominal'),
         ];
     }
 
-    protected function getGroupedJurnal(int $bulan, int $tahun, string $jenis): Collection
+    protected function getIncomingSections(int $bulan, int $tahun): array
     {
-        return JurnalKas::query()
+        $rows = JurnalKas::query()
             ->select([
                 'kode_akun_id',
                 DB::raw('SUM(cash) as total_cash'),
@@ -130,12 +98,13 @@ class CashFlowReportService
             ->with('kodeAkun')
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
-            ->where('jenis', $jenis)
+            ->where('jenis', 'masuk')
             ->groupBy('kode_akun_id')
             ->orderBy('kode_akun_id')
             ->get()
             ->map(function (JurnalKas $row): array {
                 return [
+                    'kategori' => $row->kodeAkun?->kategori,
                     'kode' => $row->kodeAkun?->kode ?? '-',
                     'nama' => $row->kodeAkun?->nama ?? '-',
                     'cash' => (float) $row->total_cash,
@@ -143,11 +112,50 @@ class CashFlowReportService
                     'total' => (float) $row->total_nominal,
                 ];
             });
+
+        $sections = [
+            'B1' => ['title' => 'Penerimaan Pendidikan', 'kategori' => 'PENERIMAAN PENDIDIKAN'],
+            'B2' => ['title' => 'Penerimaan Non Pendidikan', 'kategori' => 'PENDAPATAN NON PENDIDIKAN'],
+            'B3' => ['title' => 'Pinjaman', 'kategori' => 'PINJAMAN'],
+        ];
+
+        return collect($sections)->map(function (array $section) use ($rows): array {
+            $items = $rows
+                ->where('kategori', $section['kategori'])
+                ->sortBy('kode')
+                ->values();
+
+            return [
+                'title' => $section['title'],
+                'rows' => $items,
+                'total' => (float) $items->sum('total'),
+            ];
+        })->all();
     }
 
-    protected function getGroupedKasKecil(int $bulan, int $tahun): Collection
+    protected function getExpenseSections(int $bulan, int $tahun): array
     {
-        return KasKecil::query()
+        $fromJurnal = JurnalKas::query()
+            ->select([
+                'kode_akun_id',
+                DB::raw('SUM(cash + bank) as total_nominal'),
+            ])
+            ->with('kodeAkun')
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->where('jenis', 'keluar')
+            ->groupBy('kode_akun_id')
+            ->orderBy('kode_akun_id')
+            ->get()
+            ->mapWithKeys(fn (JurnalKas $row) => [
+                $row->kodeAkun?->kode => [
+                    'kode' => $row->kodeAkun?->kode ?? '-',
+                    'nama' => $row->kodeAkun?->nama ?? '-',
+                    'total' => (float) $row->total_nominal,
+                ],
+            ]);
+
+        $fromKasKecil = KasKecil::query()
             ->select([
                 'kode_akun_id',
                 DB::raw('SUM(nominal) as total_nominal'),
@@ -157,62 +165,81 @@ class CashFlowReportService
             ->where('tahun', $tahun)
             ->groupBy('kode_akun_id')
             ->orderBy('kode_akun_id')
-            ->get()
-            ->map(function (KasKecil $row): array {
-                return [
-                    'kode' => $row->kodeAkun?->kode ?? '-',
-                    'nama' => $row->kodeAkun?->nama ?? '-',
-                    'total' => (float) $row->total_nominal,
-                ];
-            });
-    }
+            ->get();
 
-    protected function resolveOpeningBalance(int $bulan, int $tahun): array
-    {
-        $current = SaldoKasBulanan::query()->bulanTahun($bulan, $tahun)->first();
+        foreach ($fromKasKecil as $row) {
+            $kode = $row->kodeAkun?->kode;
 
-        if ($current) {
-            return [
-                'cash' => (float) $current->saldo_awal_cash,
-                'bank' => (float) $current->saldo_awal_bank,
-                'is_locked' => (bool) $current->is_locked,
-                'source' => 'stored',
+            if (! $kode) {
+                continue;
+            }
+
+            $fromJurnal[$kode] = [
+                'kode' => $kode,
+                'nama' => $row->kodeAkun?->nama ?? '-',
+                'total' => (float) ($fromJurnal[$kode]['total'] ?? 0) + (float) $row->total_nominal,
             ];
         }
 
-        [$prevMonth, $prevYear] = $this->previousPeriod($bulan, $tahun);
-        $previous = SaldoKasBulanan::query()->bulanTahun($prevMonth, $prevYear)->first();
-
-        if (! $previous || ! $previous->is_locked) {
-            return [
-                'cash' => 0.0,
-                'bank' => 0.0,
-                'is_locked' => false,
-                'source' => 'default_zero',
-            ];
-        }
-
-        $previousMovements = $this->getMovementTotals($prevMonth, $prevYear);
-
-        return [
-            'cash' => (float) $previous->saldo_awal_cash + $previousMovements['masuk_cash'] - $previousMovements['keluar_cash'] - $previousMovements['kas_kecil'],
-            'bank' => (float) $previous->saldo_awal_bank + $previousMovements['masuk_bank'] - $previousMovements['keluar_bank'],
-            'is_locked' => false,
-            'source' => 'previous_locked',
+        $sections = [
+            'C1' => 'Gaji dan Tunjangan',
+            'C2' => 'Beban Pegawai Lainnya',
+            'C3' => 'Beban Operasional Kantor',
+            'C4' => 'Beban Pemasaran',
+            'C5' => 'Kontrak Pelayanan',
+            'C6' => 'Asuransi',
+            'C7' => 'Pengadaan Fasilitas',
+            'C8' => 'Kegiatan Siswa',
+            'C9' => 'Kegiatan Sosial',
+            'C10' => 'Perjalanan Dinas',
+            'C11' => 'Pendidikan dan Latihan',
+            'C12' => 'Biaya Lain-lain',
         ];
+
+        $grouped = [];
+
+        foreach ($sections as $key => $title) {
+            $grouped[$key] = [
+                'title' => $title,
+                'rows' => collect(),
+                'total' => 0.0,
+            ];
+        }
+
+        foreach (collect($fromJurnal)->sortBy('kode') as $row) {
+            $sectionKey = $this->resolveExpenseSection($row['kode']);
+
+            if (! $sectionKey) {
+                continue;
+            }
+
+            $grouped[$sectionKey]['rows']->push($row);
+            $grouped[$sectionKey]['total'] += (float) $row['total'];
+        }
+
+        foreach ($grouped as &$section) {
+            $section['rows'] = $section['rows']->values();
+        }
+
+        return $grouped;
     }
 
-    protected function previousPeriod(int $bulan, int $tahun): array
+    protected function resolveExpenseSection(string $kode): ?string
     {
-        return $bulan === 1
-            ? [12, $tahun - 1]
-            : [$bulan - 1, $tahun];
-    }
-
-    protected function nextPeriod(int $bulan, int $tahun): array
-    {
-        return $bulan === 12
-            ? [1, $tahun + 1]
-            : [$bulan + 1, $tahun];
+        return match (true) {
+            str_starts_with($kode, '5.01.01'), str_starts_with($kode, '5.01.02') => 'C1',
+            str_starts_with($kode, '5.01.03') => 'C2',
+            str_starts_with($kode, '5.02') => 'C3',
+            str_starts_with($kode, '5.03') => 'C4',
+            str_starts_with($kode, '5.04') => 'C5',
+            str_starts_with($kode, '5.05') => 'C6',
+            str_starts_with($kode, '5.06') => 'C7',
+            str_starts_with($kode, '5.07') => 'C8',
+            str_starts_with($kode, '5.08') => 'C9',
+            str_starts_with($kode, '5.09') => 'C10',
+            str_starts_with($kode, '5.10') => 'C11',
+            str_starts_with($kode, '5.11') => 'C12',
+            default => null,
+        };
     }
 }

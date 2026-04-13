@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\KasKecil;
 use App\Models\User;
+use App\Services\Reports\SaldoKasService;
 
 class KasKecilPolicy
 {
@@ -29,11 +30,13 @@ class KasKecilPolicy
         }
 
         if ($user->isAdmin()) {
-            return true;
+            return ! app(SaldoKasService::class)->isLocked($kasKecil->bulan, $kasKecil->tahun);
         }
 
         // Bendahara hanya bisa edit kas kecil bulan berjalan
-        return $kasKecil->bulan === now()->month && $kasKecil->tahun === now()->year;
+        return $kasKecil->bulan === now()->month
+            && $kasKecil->tahun === now()->year
+            && ! app(SaldoKasService::class)->isLocked($kasKecil->bulan, $kasKecil->tahun);
     }
 
     public function delete(User $user, KasKecil $kasKecil): bool
@@ -43,12 +46,13 @@ class KasKecilPolicy
         }
 
         // Hanya admin yang bisa hapus
-        return $user->isAdmin();
+        return $user->isAdmin()
+            && ! app(SaldoKasService::class)->isLocked($kasKecil->bulan, $kasKecil->tahun);
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->isAdmin();
+        return false;
     }
 
     public function restore(User $user, KasKecil $kasKecil): bool
