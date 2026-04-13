@@ -4,54 +4,38 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ─── Roles ───────────────────────────────────────────
-        $admin        = Role::firstOrCreate(['name' => 'admin']);
-        $bendahara    = Role::firstOrCreate(['name' => 'bendahara']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $bendahara = Role::firstOrCreate(['name' => 'bendahara']);
         $kepalaSekolah = Role::firstOrCreate(['name' => 'kepala_sekolah']);
 
-        // ─── Permissions ─────────────────────────────────────
         $permissions = [
-            // Master Data
             'view_kode_akun', 'create_kode_akun', 'edit_kode_akun', 'delete_kode_akun',
-            'view_jurusan',   'create_jurusan',   'edit_jurusan',   'delete_jurusan',
-            'view_kelas',     'create_kelas',     'edit_kelas',     'delete_kelas',
-            'view_siswa',     'create_siswa',     'edit_siswa',     'delete_siswa',
-
-            // Jurnal Kas
+            'view_jurusan', 'create_jurusan', 'edit_jurusan', 'delete_jurusan',
+            'view_kelas', 'create_kelas', 'edit_kelas', 'delete_kelas',
+            'view_siswa', 'create_siswa', 'edit_siswa', 'delete_siswa',
             'view_jurnal_kas', 'create_jurnal_kas', 'edit_jurnal_kas', 'delete_jurnal_kas',
-
-            // Kas Kecil
             'view_kas_kecil', 'create_kas_kecil', 'edit_kas_kecil', 'delete_kas_kecil',
-
-            // Kartu SPP
             'view_kartu_spp', 'create_kartu_spp', 'edit_kartu_spp',
-
-            // Laporan
             'view_laporan_arus_kas', 'view_laporan_kas_kecil',
             'view_laporan_spp', 'export_laporan',
-
-            // Anggaran
             'view_anggaran', 'create_anggaran', 'edit_anggaran',
-
-            // Dashboard
             'view_dashboard',
         ];
 
-        foreach ($permissions as $perm) {
-            Permission::firstOrCreate(['name' => $perm]);
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // ─── Assign ke Role ──────────────────────────────────
-        $admin->givePermissionTo(Permission::all());
+        $admin->syncPermissions(Permission::all());
 
-        $bendahara->givePermissionTo([
+        $bendahara->syncPermissions([
             'view_kode_akun',
             'view_jurusan', 'view_kelas',
             'view_siswa', 'create_siswa', 'edit_siswa',
@@ -63,7 +47,7 @@ class DatabaseSeeder extends Seeder
             'view_dashboard',
         ]);
 
-        $kepalaSekolah->givePermissionTo([
+        $kepalaSekolah->syncPermissions([
             'view_jurnal_kas',
             'view_kas_kecil',
             'view_kartu_spp',
@@ -73,40 +57,41 @@ class DatabaseSeeder extends Seeder
             'view_dashboard',
         ]);
 
-        // ─── Seeder lainnya ──────────────────────────────────
         $this->call([
             KodeAkunSeeder::class,
             JurusanKelasSeeder::class,
-            SiswaSeeder::class,
         ]);
 
-        // ─── User admin default ──────────────────────────────
-        $user = User::firstOrCreate(
+        $adminUser = User::firstOrCreate(
             ['email' => 'admin@karyabangsa.sch.id'],
             [
-                'name'     => 'Admin Keuangan',
+                'name' => 'Admin Keuangan',
                 'password' => bcrypt('Admin@1234'),
-            ]
+            ],
         );
-        $user->assignRole('admin');
+        $adminUser->syncRoles(['admin']);
 
-        // User bendahara demo
         $bendaharaUser = User::firstOrCreate(
             ['email' => 'bendahara@karyabangsa.sch.id'],
             [
-                'name'     => 'Bendahara SMK',
+                'name' => 'Bendahara SMK',
                 'password' => bcrypt('Bendahara@1234'),
-            ]
+            ],
         );
-        $bendaharaUser->assignRole('bendahara');
+        $bendaharaUser->syncRoles(['bendahara']);
 
         $kepalaSekolahUser = User::firstOrCreate(
             ['email' => 'kepalasekolah@karyabangsa.sch.id'],
             [
-                'name'     => 'Kepala Sekolah',
+                'name' => 'Kepala Sekolah',
                 'password' => bcrypt('KepalaSekolah@1234'),
-            ]
+            ],
         );
-        $kepalaSekolahUser->assignRole('kepala_sekolah');
+        $kepalaSekolahUser->syncRoles(['kepala_sekolah']);
+
+        $this->call([
+            SiswaSeeder::class,
+            DummyFinanceSeeder::class,
+        ]);
     }
 }
