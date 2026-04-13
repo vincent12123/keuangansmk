@@ -2,11 +2,15 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\TunggakanSppExport;
 use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Services\Reports\SppArrearsReportService;
+use App\Support\ReportHelper;
+use Filament\Actions;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanTunggakanSpp extends Page
 {
@@ -41,6 +45,23 @@ class LaporanTunggakanSpp extends Page
     public static function canAccess(): bool
     {
         return auth()->user()?->hasPermissionTo('view_laporan_spp') ?? false;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('export_excel')
+                ->label('Export Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
+                ->action(function () {
+                    return Excel::download(
+                        new TunggakanSppExport($this->bulan, $this->tahun, $this->filterJurusan, $this->filterKelas),
+                        'Tunggakan-SPP-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx',
+                    );
+                }),
+        ];
     }
 
     public function updatedFilterJurusan(): void

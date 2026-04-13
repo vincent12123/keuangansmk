@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\KasKecilExport;
 use App\Models\KasKecil;
 use App\Models\KodeAkun;
 use App\Models\PengisianKasKecil;
 use App\Services\Reports\SaldoKasService;
+use App\Support\ReportHelper;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -15,6 +17,7 @@ use Filament\Tables\Table;
 use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 
 class KasKecilResource extends Resource
 {
@@ -153,6 +156,37 @@ class KasKecilResource extends Resource
                     ->options(fn (): array => static::getKasKecilKodeAkunOptions()),
             ])
             ->headerActions([
+                Actions\Action::make('export_excel')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
+                    ->form([
+                        Forms\Components\Select::make('bulan')
+                            ->label('Bulan')
+                            ->options([
+                                1=>'Januari', 2=>'Februari', 3=>'Maret',
+                                4=>'April',   5=>'Mei',       6=>'Juni',
+                                7=>'Juli',    8=>'Agustus',   9=>'September',
+                                10=>'Oktober',11=>'November', 12=>'Desember',
+                            ])
+                            ->default(now()->month)
+                            ->required(),
+                        Forms\Components\Select::make('tahun')
+                            ->label('Tahun')
+                            ->options(fn (): array => array_combine(
+                                range(now()->year + 1, now()->year - 5),
+                                range(now()->year + 1, now()->year - 5),
+                            ))
+                            ->default(now()->year)
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        return Excel::download(
+                            new KasKecilExport((int) $data['bulan'], (int) $data['tahun']),
+                            'Rekap-Kas-Kecil-' . ReportHelper::monthName((int) $data['bulan']) . '-' . $data['tahun'] . '.xlsx',
+                        );
+                    }),
                 // Ringkasan saldo kas kecil
                 Actions\Action::make('saldo_info')
                     ->label(function () {

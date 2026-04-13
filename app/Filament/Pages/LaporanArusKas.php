@@ -2,11 +2,16 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\ArusKasBulananExport;
+use App\Services\ExportPdfService;
 use App\Services\Reports\CashFlowReportService;
 use App\Services\Reports\SaldoKasService;
+use App\Support\ReportHelper;
+use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanArusKas extends Page
 {
@@ -43,6 +48,42 @@ class LaporanArusKas extends Page
     public static function canAccess(): bool
     {
         return auth()->user()?->hasPermissionTo('view_laporan_arus_kas') ?? false;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('export_excel')
+                ->label('Export Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
+                ->action(function () {
+                    $filename = 'Arus-Kas-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx';
+
+                    return Excel::download(
+                        new ArusKasBulananExport($this->bulan, $this->tahun),
+                        $filename,
+                    );
+                }),
+            Actions\Action::make('cetak_pdf')
+                ->label('Cetak PDF')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->action(function () {
+                    return app(ExportPdfService::class)->stream(
+                        'pdf.arus-kas-bulanan',
+                        [
+                            'report' => $this->reportData,
+                            'namaBulan' => ReportHelper::monthName($this->bulan),
+                            'tahun' => $this->tahun,
+                            'namaBendahara' => 'Bendahara SMK',
+                            'namaKepalaSekolah' => 'Kepala Sekolah',
+                        ],
+                        'Arus-Kas-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.pdf',
+                    );
+                }),
+        ];
     }
 
     public function updatedBulan(): void

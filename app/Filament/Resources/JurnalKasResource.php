@@ -2,10 +2,14 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\JurnalKasExport;
 use App\Models\JurnalKas;
 use App\Models\KodeAkun;
 use App\Models\Siswa;
+use App\Services\ExportPdfService;
 use App\Services\Reports\SaldoKasService;
+use App\Services\TerbilangService;
+use App\Support\ReportHelper;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -18,6 +22,7 @@ use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class JurnalKasResource extends Resource
 {
@@ -281,6 +286,37 @@ class JurnalKasResource extends Resource
                     ->options(fn (): array => static::getJurnalKodeAkunOptions()),
             ])
             ->headerActions([
+                Actions\Action::make('export_excel')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
+                    ->form([
+                        Forms\Components\Select::make('bulan')
+                            ->label('Bulan')
+                            ->options([
+                                1=>'Januari', 2=>'Februari', 3=>'Maret',
+                                4=>'April',   5=>'Mei',       6=>'Juni',
+                                7=>'Juli',    8=>'Agustus',   9=>'September',
+                                10=>'Oktober',11=>'November', 12=>'Desember',
+                            ])
+                            ->default(now()->month)
+                            ->required(),
+                        Forms\Components\Select::make('tahun')
+                            ->label('Tahun')
+                            ->options(fn (): array => array_combine(
+                                range(now()->year + 1, now()->year - 5),
+                                range(now()->year + 1, now()->year - 5),
+                            ))
+                            ->default(now()->year)
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        return Excel::download(
+                            new JurnalKasExport((int) $data['bulan'], (int) $data['tahun']),
+                            'Jurnal-CashBank-' . ReportHelper::monthName((int) $data['bulan']) . '-' . $data['tahun'] . '.xlsx',
+                        );
+                    }),
                 // Ringkasan bulan ini di header tabel
                 Actions\Action::make('ringkasan')
                     ->label(function () {
@@ -303,6 +339,22 @@ class JurnalKasResource extends Resource
                     ->color('gray'),
             ])
             ->actions([
+                Actions\Action::make('cetak_kwitansi')
+                    ->label('Kwitansi')
+                    ->icon('heroicon-o-printer')
+                    ->color('info')
+                    ->visible(fn (JurnalKas $record): bool => $record->jenis === 'masuk')
+                    ->action(function (JurnalKas $record) {
+                        return app(ExportPdfService::class)->stream(
+                            'pdf.kwitansi',
+                            [
+                                'transaksi' => $record->load(['kodeAkun', 'kelas']),
+                                'terbilang' => app(TerbilangService::class)->convert((float) $record->cash + (float) $record->bank),
+                                'namaBendahara' => auth()->user()?->name ?? 'Bendahara',
+                            ],
+                            'kwitansi-' . ($record->no_kwitansi ?: $record->id) . '.pdf',
+                        );
+                    }),
                 Actions\EditAction::make(),
                 Actions\DeleteAction::make(),
             ])

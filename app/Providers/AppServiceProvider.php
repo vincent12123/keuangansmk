@@ -4,11 +4,15 @@ namespace App\Providers;
 
 use App\Models\JurnalKas;
 use App\Observers\JurnalKasObserver;
+use App\Services\TerbilangService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->singleton(TerbilangService::class);
+    }
 
     public function boot(): void
     {

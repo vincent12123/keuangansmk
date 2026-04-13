@@ -2,9 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\PivotCashBankExport;
 use App\Services\Reports\PivotCashBankReportService;
+use App\Support\ReportHelper;
+use Filament\Actions;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PivotCashBank extends Page
 {
@@ -37,6 +41,23 @@ class PivotCashBank extends Page
         $user = auth()->user();
 
         return $user?->isAdmin() || $user?->isBendahara();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('export_excel')
+                ->label('Export Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
+                ->action(function () {
+                    return Excel::download(
+                        new PivotCashBankExport($this->bulan, $this->tahun),
+                        'Pivot-Cash-Bank-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx',
+                    );
+                }),
+        ];
     }
 
     #[Computed]
