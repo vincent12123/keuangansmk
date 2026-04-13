@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class JurnalKas extends Model
 {
+    use LogsActivity;
     use SoftDeletes;
 
     public const SPP_ACCOUNT_CODES = [
@@ -137,5 +140,36 @@ class JurnalKas extends Model
         if ($kodeAkun->tipe === 'pendapatan' && blank($model->no_kwitansi)) {
             $model->no_kwitansi = static::generateNoKwitansi();
         }
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('jurnal_kas')
+            ->logOnly([
+                'no_kwitansi',
+                'tanggal',
+                'nis',
+                'nama_penyetor',
+                'kelas_id',
+                'kode_akun_id',
+                'uraian',
+                'cash',
+                'bank',
+                'jenis',
+                'bulan',
+                'tahun',
+                'created_by',
+                'updated_by',
+                'deleted_at',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'create_jurnal_kas',
+                'updated' => 'update_jurnal_kas',
+                'deleted' => 'delete_jurnal_kas',
+                default => $eventName,
+            });
     }
 }

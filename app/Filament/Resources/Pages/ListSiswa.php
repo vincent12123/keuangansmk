@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Pages;
 
 use App\Filament\Resources\SiswaResource;
 use App\Imports\SiswaImport;
+use App\Services\AuditTrailService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -48,6 +49,12 @@ class ListSiswa extends ListRecords
                     $import = new SiswaImport((int) $data['angkatan']);
 
                     Excel::import($import, $path);
+
+                    app(AuditTrailService::class)->logImport('siswa_excel', [
+                        'angkatan' => (int) $data['angkatan'],
+                        'errors_count' => count($import->getErrors()),
+                        'file' => $data['file'],
+                    ]);
 
                     Notification::make()
                         ->title('Import siswa selesai')

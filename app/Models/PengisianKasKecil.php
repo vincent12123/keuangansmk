@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class PengisianKasKecil extends Model
 {
+    use LogsActivity;
     use SoftDeletes;
 
     protected $table = 'pengisian_kas_kecil';
@@ -69,5 +72,29 @@ class PengisianKasKecil extends Model
     public function scopeBulanTahun($query, int $bulan, int $tahun)
     {
         return $query->where('bulan', $bulan)->where('tahun', $tahun);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('pengisian_kas_kecil')
+            ->logOnly([
+                'tanggal',
+                'nominal',
+                'keterangan',
+                'bulan',
+                'tahun',
+                'created_by',
+                'updated_by',
+                'deleted_at',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'create_pengisian_kas_kecil',
+                'updated' => 'update_pengisian_kas_kecil',
+                'deleted' => 'delete_pengisian_kas_kecil',
+                default => $eventName,
+            });
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Exports\KasKecilExport;
+use App\Services\AuditTrailService;
 use App\Models\KasKecil;
 use App\Models\KodeAkun;
 use App\Models\PengisianKasKecil;
@@ -182,6 +183,11 @@ class KasKecilResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data) {
+                        app(AuditTrailService::class)->logExport('rekap_kas_kecil_excel', [
+                            'bulan' => (int) $data['bulan'],
+                            'tahun' => (int) $data['tahun'],
+                        ]);
+
                         return Excel::download(
                             new KasKecilExport((int) $data['bulan'], (int) $data['tahun']),
                             'Rekap-Kas-Kecil-' . ReportHelper::monthName((int) $data['bulan']) . '-' . $data['tahun'] . '.xlsx',

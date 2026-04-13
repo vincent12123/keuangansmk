@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Siswa extends Model
 {
+    use LogsActivity;
     use SoftDeletes;
 
     protected $table = 'siswa';
@@ -75,5 +78,31 @@ class Siswa extends Model
         $bulanIni = (int) now()->format('m');
         $tahun    = (int) now()->format('Y');
         return $this->hitungTunggakan($bulanIni, $tahun) * $this->nominal_spp;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('siswa')
+            ->logOnly([
+                'nis',
+                'nama',
+                'kelas_id',
+                'jurusan_id',
+                'angkatan',
+                'nominal_spp',
+                'status',
+                'no_hp_wali',
+                'nama_wali',
+                'deleted_at',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'create_siswa',
+                'updated' => 'update_siswa',
+                'deleted' => 'delete_siswa',
+                default => $eventName,
+            });
     }
 }

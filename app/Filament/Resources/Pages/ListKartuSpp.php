@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Pages;
 
 use App\Filament\Resources\KartuSppResource;
 use App\Imports\HistoriSppImport;
+use App\Services\AuditTrailService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -65,6 +66,12 @@ class ListKartuSpp extends ListRecords
                     $import = new HistoriSppImport((int) $data['tahun_ajaran']);
 
                     Excel::import($import, $path);
+
+                    app(AuditTrailService::class)->logImport('histori_spp_excel', [
+                        'tahun_ajaran' => (int) $data['tahun_ajaran'],
+                        'errors_count' => count($import->getErrors()),
+                        'file' => $data['file'],
+                    ]);
 
                     Notification::make()
                         ->title('Import histori SPP selesai')

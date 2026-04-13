@@ -1,11 +1,17 @@
 <?php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 // ─── KartuSpp ────────────────────────────────────────────────
 class KartuSpp extends Model
 {
+    use LogsActivity;
+
     protected $table = 'kartu_spp';
 
     protected $fillable = [
@@ -41,5 +47,28 @@ class KartuSpp extends Model
             7=>'Juli',    8=>'Agustus',   9=>'September',
             10=>'Oktober',11=>'November', 12=>'Desember',
         ][$this->bulan] ?? (string) $this->bulan;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('kartu_spp')
+            ->logOnly([
+                'nis',
+                'bulan',
+                'tahun',
+                'nominal',
+                'tgl_bayar',
+                'jurnal_kas_id',
+                'keterangan',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'create_kartu_spp',
+                'updated' => 'update_kartu_spp',
+                'deleted' => 'delete_kartu_spp',
+                default => $eventName,
+            });
     }
 }

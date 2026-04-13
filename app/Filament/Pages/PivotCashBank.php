@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Exports\PivotCashBankExport;
+use App\Services\AuditTrailService;
 use App\Services\Reports\PivotCashBankReportService;
 use App\Support\ReportHelper;
 use Filament\Actions;
@@ -52,6 +53,11 @@ class PivotCashBank extends Page
                 ->color('success')
                 ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
                 ->action(function () {
+                    app(AuditTrailService::class)->logExport('pivot_cash_bank_excel', [
+                        'bulan' => $this->bulan,
+                        'tahun' => $this->tahun,
+                    ]);
+
                     return Excel::download(
                         new PivotCashBankExport($this->bulan, $this->tahun),
                         'Pivot-Cash-Bank-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx',

@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class KasKecil extends Model
 {
+    use LogsActivity;
     use SoftDeletes;
 
     protected $table = 'kas_kecil';
@@ -80,5 +83,31 @@ class KasKecil extends Model
             ->get()
             ->mapWithKeys(fn ($row) => [$row->kode_akun_id => $row->total])
             ->toArray();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('kas_kecil')
+            ->logOnly([
+                'no_ref',
+                'tanggal',
+                'kode_akun_id',
+                'uraian',
+                'nominal',
+                'bulan',
+                'tahun',
+                'created_by',
+                'updated_by',
+                'deleted_at',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'create_kas_kecil',
+                'updated' => 'update_kas_kecil',
+                'deleted' => 'delete_kas_kecil',
+                default => $eventName,
+            });
     }
 }

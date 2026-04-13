@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Exports\TunggakanSppExport;
 use App\Models\Jurusan;
 use App\Models\Kelas;
+use App\Services\AuditTrailService;
 use App\Services\Reports\SppArrearsReportService;
 use App\Support\ReportHelper;
 use Filament\Actions;
@@ -56,6 +57,13 @@ class LaporanTunggakanSpp extends Page
                 ->color('success')
                 ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
                 ->action(function () {
+                    app(AuditTrailService::class)->logExport('tunggakan_spp_excel', [
+                        'bulan' => $this->bulan,
+                        'tahun' => $this->tahun,
+                        'jurusan_id' => $this->filterJurusan,
+                        'kelas_id' => $this->filterKelas,
+                    ]);
+
                     return Excel::download(
                         new TunggakanSppExport($this->bulan, $this->tahun, $this->filterJurusan, $this->filterKelas),
                         'Tunggakan-SPP-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx',

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Exports\JurnalKasExport;
+use App\Services\AuditTrailService;
 use App\Models\JurnalKas;
 use App\Models\KodeAkun;
 use App\Models\Siswa;
@@ -312,6 +313,11 @@ class JurnalKasResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data) {
+                        app(AuditTrailService::class)->logExport('jurnal_cash_bank_excel', [
+                            'bulan' => (int) $data['bulan'],
+                            'tahun' => (int) $data['tahun'],
+                        ]);
+
                         return Excel::download(
                             new JurnalKasExport((int) $data['bulan'], (int) $data['tahun']),
                             'Jurnal-CashBank-' . ReportHelper::monthName((int) $data['bulan']) . '-' . $data['tahun'] . '.xlsx',
@@ -345,6 +351,12 @@ class JurnalKasResource extends Resource
                     ->color('info')
                     ->visible(fn (JurnalKas $record): bool => $record->jenis === 'masuk')
                     ->action(function (JurnalKas $record) {
+                        app(AuditTrailService::class)->logPrint('kwitansi_pdf', [
+                            'jurnal_kas_id' => $record->id,
+                            'no_kwitansi' => $record->no_kwitansi,
+                            'tanggal' => optional($record->tanggal)->toDateString(),
+                        ]);
+
                         return app(ExportPdfService::class)->stream(
                             'pdf.kwitansi',
                             [

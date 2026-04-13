@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Exports\ArusKasBulananExport;
+use App\Services\AuditTrailService;
 use App\Services\ExportPdfService;
 use App\Services\Reports\CashFlowReportService;
 use App\Services\Reports\SaldoKasService;
@@ -60,6 +61,10 @@ class LaporanArusKas extends Page
                 ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
                 ->action(function () {
                     $filename = 'Arus-Kas-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx';
+                    app(AuditTrailService::class)->logExport('arus_kas_excel', [
+                        'bulan' => $this->bulan,
+                        'tahun' => $this->tahun,
+                    ]);
 
                     return Excel::download(
                         new ArusKasBulananExport($this->bulan, $this->tahun),
@@ -71,6 +76,11 @@ class LaporanArusKas extends Page
                 ->icon('heroicon-o-printer')
                 ->color('gray')
                 ->action(function () {
+                    app(AuditTrailService::class)->logPrint('arus_kas_pdf', [
+                        'bulan' => $this->bulan,
+                        'tahun' => $this->tahun,
+                    ]);
+
                     return app(ExportPdfService::class)->stream(
                         'pdf.arus-kas-bulanan',
                         [

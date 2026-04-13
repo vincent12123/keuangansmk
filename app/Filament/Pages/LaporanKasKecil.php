@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Exports\PivotKasKecilExport;
+use App\Services\AuditTrailService;
 use App\Services\ExportPdfService;
 use App\Services\Reports\PettyCashReportService;
 use App\Support\ReportHelper;
@@ -53,6 +54,11 @@ class LaporanKasKecil extends Page
                 ->color('success')
                 ->visible(fn (): bool => auth()->user()?->hasPermissionTo('export_laporan') ?? false)
                 ->action(function () {
+                    app(AuditTrailService::class)->logExport('pivot_kas_kecil_excel', [
+                        'bulan' => $this->bulan,
+                        'tahun' => $this->tahun,
+                    ]);
+
                     return Excel::download(
                         new PivotKasKecilExport($this->bulan, $this->tahun),
                         'Pivot-Kas-Kecil-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.xlsx',
@@ -63,6 +69,11 @@ class LaporanKasKecil extends Page
                 ->icon('heroicon-o-printer')
                 ->color('gray')
                 ->action(function () {
+                    app(AuditTrailService::class)->logPrint('rekap_kas_kecil_pdf', [
+                        'bulan' => $this->bulan,
+                        'tahun' => $this->tahun,
+                    ]);
+
                     return app(ExportPdfService::class)->stream(
                         'pdf.rekap-kas-kecil',
                         [
