@@ -72,7 +72,7 @@ class JurnalKasObserver
                     'tahun' => $jurnal->tahun,
                 ],
                 [
-                    'nominal'       => $jurnal->cash + $jurnal->bank,
+                    'nominal'       => $siswa->nominal_spp,
                     'tgl_bayar'     => $jurnal->tanggal,
                     'jurnal_kas_id' => $jurnal->id,
                     'keterangan'    => $jurnal->uraian,

@@ -383,7 +383,9 @@ class JurnalKasResource extends Resource
                 ]);
             }
 
-            if (! Siswa::where('nis', $data['nis'])->exists()) {
+            $siswa = Siswa::where('nis', $data['nis'])->first();
+
+            if (! $siswa) {
                 throw ValidationException::withMessages([
                     'nis' => 'NIS siswa tidak ditemukan.',
                 ]);
@@ -392,6 +394,17 @@ class JurnalKasResource extends Resource
             if ($bulanSpp === []) {
                 throw ValidationException::withMessages([
                     'bulan_spp' => 'Pilih minimal satu bulan SPP yang dibayar.',
+                ]);
+            }
+
+            $totalSeharusnya = round((float) $siswa->nominal_spp * count($bulanSpp), 2);
+            $totalDibayar = round($cash + $bank, 2);
+
+            if ($totalDibayar !== $totalSeharusnya) {
+                throw ValidationException::withMessages([
+                    'cash' => 'Total pembayaran SPP harus sama dengan nominal SPP siswa x jumlah bulan yang dipilih.',
+                    'bank' => 'Total pembayaran SPP harus sama dengan nominal SPP siswa x jumlah bulan yang dipilih.',
+                    'bulan_spp' => 'Periksa kembali bulan yang dipilih atau total pembayaran SPP.',
                 ]);
             }
 

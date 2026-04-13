@@ -35,7 +35,7 @@ class KasKecil extends Model
 
             // Auto-generate no_ref: K25-0001
             if (! $model->no_ref) {
-                $tahun2digit = now()->format('y'); // 25
+                $tahun2digit = $model->tanggal?->format('y') ?? now()->format('y');
                 $last = static::where('no_ref', 'like', "K{$tahun2digit}-%")
                     ->orderByDesc('id')
                     ->value('no_ref');

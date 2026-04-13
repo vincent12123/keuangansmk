@@ -99,11 +99,7 @@ class KartuSppResource extends Resource
                     Forms\Components\Select::make('tahun')
                         ->label('Tahun')
                         ->required()
-                        ->options(function (): array {
-                            $year = now()->year;
-
-                            return array_combine(range($year, $year - 1), range($year, $year - 1));
-                        })
+                        ->options(fn (): array => static::getTahunOptions())
                         ->default(now()->year),
 
                     Forms\Components\DatePicker::make('tgl_bayar')
@@ -203,11 +199,7 @@ class KartuSppResource extends Resource
 
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
-                    ->options(function (): array {
-                        $year = now()->year;
-
-                        return array_combine(range($year, $year - 1), range($year, $year - 1));
-                    })
+                    ->options(fn (): array => static::getTahunOptions())
                     ->default(now()->year),
             ])
             ->headerActions([
@@ -233,5 +225,15 @@ class KartuSppResource extends Resource
             'edit' => Pages\EditKartuSpp::route('/{record}/edit'),
             'tunggakan' => Pages\TunggakanSpp::route('/tunggakan'),
         ];
+    }
+
+    protected static function getTahunOptions(): array
+    {
+        $tahunSekarang = now()->year;
+
+        return array_combine(
+            range($tahunSekarang + 1, $tahunSekarang - 5),
+            range($tahunSekarang + 1, $tahunSekarang - 5),
+        );
     }
 }
