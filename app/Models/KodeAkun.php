@@ -45,13 +45,7 @@ class KodeAkun extends Model
     {
         return $query
             ->where('aktif', true)
-            ->whereNotNull('sub_kategori')
-            ->whereNotExists(function ($subQuery) {
-                $subQuery->selectRaw('1')
-                    ->from('kode_akun as child_accounts')
-                    ->whereColumn('child_accounts.kode', '!=', 'kode_akun.kode')
-                    ->whereRaw("child_accounts.kode LIKE CONCAT(LEFT(kode_akun.kode, LENGTH(kode_akun.kode) - 2), '__')");
-            });
+            ->whereNotNull('sub_kategori');
     }
 
     // ─── Relations ───────────────────────────────────────────
