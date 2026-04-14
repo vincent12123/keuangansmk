@@ -24,6 +24,7 @@ class DashboardTahunan extends Page
 
     public int $tahun;
     public string $quarter = 'ALL';
+    public bool $showAllAccounts = false;
 
     public function mount(): void
     {
@@ -37,6 +38,11 @@ class DashboardTahunan extends Page
         }
 
         $this->quarter = $quarter;
+    }
+
+    public function setAccountVisibility(bool $showAll): void
+    {
+        $this->showAllAccounts = $showAll;
     }
 
     public static function canAccess(): bool

@@ -2,6 +2,10 @@
     @php
         $report = $this->reportData;
         $rows = collect($report['rows']);
+        $visibleRows = $this->showAllAccounts
+            ? $rows
+            : $rows->filter(fn (array $row): bool => (float) $row['akumulasi'] > 0 || (float) $row['anggaran'] > 0)->values();
+        $hiddenRowsCount = max(0, $rows->count() - $visibleRows->count());
         $monthNames = [
             1 => 'Jan',
             2 => 'Feb',
@@ -39,8 +43,8 @@
         $totalRealisasi = (float) $rows->sum('akumulasi');
         $totalAnggaran = (float) $rows->sum('anggaran');
         $coverage = $totalAnggaran > 0 ? round(($totalRealisasi / $totalAnggaran) * 100, 1) : null;
-        $warningCount = $rows->where('status', 'warning')->count();
-        $dangerCount = $rows->where('status', 'danger')->count();
+        $warningCount = $visibleRows->where('status', 'warning')->count();
+        $dangerCount = $visibleRows->where('status', 'danger')->count();
         $highestQuarter = $quarterTotals->sortDesc()->keys()->first();
         $highestQuarterValue = $highestQuarter ? ($quarterTotals[$highestQuarter] ?? 0) : 0;
         $highestOpeningQuarter = $quarterOpenings->sortDesc()->keys()->first();
@@ -48,62 +52,61 @@
     @endphp
 
     <div class="space-y-7">
-        <section class="overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.9)]">
+        <section class="overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-stone-100 via-white to-teal-50 text-slate-900 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.22)] dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 dark:text-white">
             <div class="grid gap-7 px-6 py-7 lg:grid-cols-[1.35fr_0.95fr] lg:px-8">
                 <div class="space-y-5">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-teal-200">
                         Monitoring Anggaran Tahunan
                     </div>
 
                     <div class="space-y-3">
                         <div class="text-2xl font-semibold tracking-tight lg:text-3xl">
-                            Dashboard monitoring anggaran yang lebih ringkas, rapi, dan nyaman dibaca.
+                            Dashboard Tahunan Monitoring Anggaran
                         </div>
-                        <p class="max-w-3xl text-sm leading-6 text-slate-300">
-                            Fokus utama halaman ini adalah realisasi versus anggaran, posisi saldo awal operasional,
-                            dan akun yang membutuhkan perhatian cepat pada tahun {{ $this->tahun }}.
-                        </p>
+                        <div class="text-sm font-medium text-slate-600 dark:text-slate-300">
+                            Tahun Buku {{ $this->tahun }}
+                        </div>
                     </div>
 
                     <div class="grid gap-3 sm:grid-cols-3">
-                        <div class="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
-                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Total Realisasi</div>
-                            <div class="mt-2 text-xl font-semibold">Rp {{ number_format($totalRealisasi, 0, ',', '.') }}</div>
-                            <div class="mt-1 text-xs text-slate-300">Akumulasi seluruh akun dalam tahun berjalan</div>
+                        <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
+                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">Total Realisasi</div>
+                            <div class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">Rp {{ number_format($totalRealisasi, 0, ',', '.') }}</div>
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">Akumulasi seluruh akun dalam tahun berjalan</div>
                         </div>
-                        <div class="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
-                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Total Anggaran</div>
-                            <div class="mt-2 text-xl font-semibold">Rp {{ number_format($totalAnggaran, 0, ',', '.') }}</div>
-                            <div class="mt-1 text-xs text-slate-300">Target tahunan aktif dari modul anggaran</div>
+                        <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
+                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">Total Anggaran</div>
+                            <div class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">Rp {{ number_format($totalAnggaran, 0, ',', '.') }}</div>
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">Target tahunan aktif dari modul anggaran</div>
                         </div>
-                        <div class="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
-                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Coverage</div>
-                            <div class="mt-2 text-xl font-semibold">{{ $coverage !== null ? number_format($coverage, 1, ',', '.') . '%' : '-' }}</div>
-                            <div class="mt-1 text-xs text-slate-300">Realisasi dibandingkan target anggaran</div>
+                        <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
+                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">Coverage</div>
+                            <div class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">{{ $coverage !== null ? number_format($coverage, 1, ',', '.') . '%' : '-' }}</div>
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">Realisasi dibandingkan target anggaran</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <div class="rounded-[24px] border border-white/10 bg-white/8 p-5 backdrop-blur">
-                        <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Tahun Monitoring</label>
+                    <div class="rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
+                        <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">Tahun Monitoring</label>
                         <select
                             wire:model.live="tahun"
-                            class="w-full rounded-2xl border border-white/15 bg-slate-900/70 px-4 py-3 text-sm font-medium text-white shadow-inner outline-none ring-0 transition focus:border-cyan-300"
+                            class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm outline-none ring-0 transition focus:border-teal-400 dark:border-white/15 dark:bg-slate-900/70 dark:text-white dark:focus:border-cyan-300"
                         >
                             @foreach ($this->yearOptions as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>
 
-                        <div class="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm text-cyan-50">
-                            <div class="font-semibold">Snapshot tahun {{ $this->tahun }}</div>
-                            <div class="mt-1 text-cyan-100/80">
+                        <div class="mt-4 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm text-slate-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-50">
+                            <div class="font-semibold text-slate-900 dark:text-white">Snapshot tahun {{ $this->tahun }}</div>
+                            <div class="mt-1 text-slate-600 dark:text-cyan-100/80">
                                 Quarter realisasi tertinggi:
                                 <span class="font-semibold">{{ $highestQuarter ?? '-' }}</span>
                                 (Rp {{ number_format($highestQuarterValue, 0, ',', '.') }})
                             </div>
-                            <div class="mt-1 text-cyan-100/80">
+                            <div class="mt-1 text-slate-600 dark:text-cyan-100/80">
                                 Quarter saldo awal tertinggi:
                                 <span class="font-semibold">{{ $highestOpeningQuarter ?? '-' }}</span>
                                 (Rp {{ number_format($highestOpeningValue, 0, ',', '.') }})
@@ -112,17 +115,17 @@
                     </div>
 
                     <div class="grid gap-3 sm:grid-cols-3">
-                        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+                        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 shadow-sm">
                             <div class="text-[11px] font-semibold uppercase tracking-[0.16em]">Aman</div>
-                            <div class="mt-2 text-2xl font-semibold">{{ $rows->where('status', 'success')->count() }}</div>
+                            <div class="mt-2 text-2xl font-semibold">{{ $visibleRows->where('status', 'success')->count() }}</div>
                             <div class="mt-1 text-xs text-emerald-700">Akun dalam batas yang sehat</div>
                         </div>
-                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 shadow-sm">
                             <div class="text-[11px] font-semibold uppercase tracking-[0.16em]">Perlu Atensi</div>
                             <div class="mt-2 text-2xl font-semibold">{{ $warningCount }}</div>
                             <div class="mt-1 text-xs text-amber-700">Mendekati ambang kontrol</div>
                         </div>
-                        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-900">
+                        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-900 shadow-sm">
                             <div class="text-[11px] font-semibold uppercase tracking-[0.16em]">Kritis</div>
                             <div class="mt-2 text-2xl font-semibold">{{ $dangerCount }}</div>
                             <div class="mt-1 text-xs text-rose-700">Perlu tindakan cepat</div>
@@ -146,8 +149,8 @@
                             type="button"
                             wire:click="setQuarter('{{ $value }}')"
                             class="{{ $this->quarter === $value
-                                ? 'bg-slate-950 text-white ring-slate-950'
-                                : 'bg-slate-100 text-slate-600 ring-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700' }} rounded-full px-4 py-2 text-xs font-semibold transition ring-1"
+                                ? 'bg-teal-700 text-white ring-teal-700 dark:bg-slate-100 dark:text-slate-900 dark:ring-slate-100'
+                                : 'bg-stone-100 text-slate-600 ring-stone-200 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700' }} rounded-full px-4 py-2 text-xs font-semibold transition ring-1"
                         >
                             {{ $label }}
                         </button>
@@ -158,19 +161,19 @@
             <div class="mt-5 grid gap-4 {{ $focusedQuarter ? 'xl:grid-cols-4' : 'xl:grid-cols-4' }}">
                 @if (! $focusedQuarter)
                     @foreach ($quarterMap as $quarter => $months)
-                        <div class="rounded-[22px] border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950/60">
+                        <div class="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/60">
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{{ $quarter }}</div>
                                     <div class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">Rp {{ number_format($quarterTotals[$quarter], 0, ',', '.') }}</div>
                                 </div>
-                                <div class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
+                                <div class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-stone-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
                                     {{ $quarterLabels[$quarter] }}
                                 </div>
                             </div>
-                            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                            <div class="mt-4 h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-800">
                                 <div
-                                    class="h-full rounded-full bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600"
+                                    class="h-full rounded-full bg-gradient-to-r from-teal-500 via-cyan-500 to-sky-500"
                                     style="width: {{ $highestQuarterValue > 0 ? min(100, ($quarterTotals[$quarter] / $highestQuarterValue) * 100) : 0 }}%;"
                                 ></div>
                             </div>
@@ -181,7 +184,7 @@
                     @endforeach
                 @else
                     @foreach ($focusedMonths as $bulan)
-                        <div class="rounded-[22px] border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950/60">
+                        <div class="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/60">
                             <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{{ $monthNames[$bulan] }}</div>
                             <div class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">Rp {{ number_format($report['month_totals'][$bulan] ?? 0, 0, ',', '.') }}</div>
                             <div class="mt-3 text-xs text-slate-500 dark:text-slate-400">
@@ -189,11 +192,11 @@
                             </div>
                         </div>
                     @endforeach
-                    <div class="rounded-[22px] border border-cyan-200 bg-cyan-50 p-5 text-cyan-950 dark:border-cyan-900 dark:bg-cyan-950/20 dark:text-cyan-50">
-                        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">{{ $focusedQuarter }}</div>
+                    <div class="rounded-[22px] border border-teal-200 bg-teal-50 p-5 text-slate-800 shadow-sm dark:border-cyan-900 dark:bg-cyan-950/20 dark:text-cyan-50">
+                        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-cyan-300">{{ $focusedQuarter }}</div>
                         <div class="mt-2 text-lg font-semibold">Rp {{ number_format($quarterTotals[$focusedQuarter], 0, ',', '.') }}</div>
                         <div class="mt-2 text-sm">{{ $quarterLabels[$focusedQuarter] }}</div>
-                        <div class="mt-3 text-xs text-cyan-700 dark:text-cyan-300">
+                        <div class="mt-3 text-xs text-teal-700 dark:text-cyan-300">
                             Saldo awal quarter: Rp {{ number_format($quarterOpenings[$focusedQuarter], 0, ',', '.') }}
                         </div>
                     </div>
@@ -208,8 +211,31 @@
                     <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Semua nilai dalam Rupiah. Tabel diringkas per quarter untuk mengurangi scroll horizontal.
                     </div>
+                    @if ($hiddenRowsCount > 0 && ! $this->showAllAccounts)
+                        <div class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                            {{ $hiddenRowsCount }} akun tanpa realisasi dan tanpa anggaran disembunyikan.
+                        </div>
+                    @endif
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-xs font-medium">
+                    <button
+                        type="button"
+                        wire:click="setAccountVisibility(false)"
+                        class="{{ ! $this->showAllAccounts
+                            ? 'bg-teal-700 text-white ring-teal-700 dark:bg-slate-100 dark:text-slate-900 dark:ring-slate-100'
+                            : 'bg-stone-100 text-slate-600 ring-stone-200 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700' }} rounded-full px-3 py-1.5 transition ring-1"
+                    >
+                        Hanya akun aktif
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="setAccountVisibility(true)"
+                        class="{{ $this->showAllAccounts
+                            ? 'bg-teal-700 text-white ring-teal-700 dark:bg-slate-100 dark:text-slate-900 dark:ring-slate-100'
+                            : 'bg-stone-100 text-slate-600 ring-stone-200 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700' }} rounded-full px-3 py-1.5 transition ring-1"
+                    >
+                        Tampilkan semua akun
+                    </button>
                     <span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 ring-1 ring-emerald-200">Aman</span>
                     <span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 ring-1 ring-amber-200">Perlu atensi</span>
                     <span class="rounded-full bg-rose-50 px-3 py-1 text-rose-700 ring-1 ring-rose-200">Kritis</span>
@@ -219,16 +245,16 @@
             <div class="overflow-x-auto">
                 <table class="min-w-[1360px] border-separate border-spacing-0 text-[13px]">
                     <thead>
-                        <tr class="bg-slate-950 text-white">
-                            <th class="sticky left-0 z-30 min-w-[132px] border-b border-slate-800 bg-slate-950 px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em]">Kode</th>
-                            <th class="sticky left-[132px] z-30 min-w-[280px] border-b border-slate-800 bg-slate-950 px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em]">Nama Akun</th>
+                        <tr class="bg-slate-800 text-white dark:bg-slate-950">
+                            <th class="sticky left-0 z-30 min-w-[132px] border-b border-slate-700 bg-slate-800 px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800 dark:bg-slate-950">Kode</th>
+                            <th class="sticky left-[132px] z-30 min-w-[280px] border-b border-slate-700 bg-slate-800 px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800 dark:bg-slate-950">Nama Akun</th>
                             @foreach (array_keys($quarterMap) as $quarter)
-                                <th class="border-b border-slate-800 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em]">{{ $quarter }}</th>
+                                <th class="border-b border-slate-700 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800">{{ $quarter }}</th>
                             @endforeach
-                            <th class="border-b border-slate-800 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em]">Akumulasi</th>
-                            <th class="border-b border-slate-800 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em]">Anggaran</th>
-                            <th class="border-b border-slate-800 px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em]">Progress</th>
-                            <th class="border-b border-slate-800 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em]">Selisih</th>
+                            <th class="border-b border-slate-700 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800">Akumulasi</th>
+                            <th class="border-b border-slate-700 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800">Anggaran</th>
+                            <th class="border-b border-slate-700 px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800">Progress</th>
+                            <th class="border-b border-slate-700 px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] dark:border-slate-800">Selisih</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -252,7 +278,7 @@
                             <td class="border-b border-cyan-100 px-3 py-2.5 text-right text-cyan-700 dark:border-cyan-900 dark:text-cyan-300">-</td>
                         </tr>
 
-                        @foreach ($rows as $row)
+                        @foreach ($visibleRows as $row)
                             @php
                                 $badgeClasses = match ($row['status']) {
                                     'success' => 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20',
