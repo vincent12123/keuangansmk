@@ -2,8 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\KartuSpp;
 use App\Models\Siswa;
+use App\Services\SppImportService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -82,18 +82,13 @@ class HistoriSppImport implements ToCollection
                 continue;
             }
 
-            KartuSpp::updateOrCreate(
-                [
-                    'nis' => $siswa->nis,
-                    'bulan' => $info['bulan'],
-                    'tahun' => $info['tahun'],
-                ],
-                [
-                    'nominal' => $nominal,
-                    'tgl_bayar' => now()->toDateString(),
-                    'jurnal_kas_id' => null,
-                    'keterangan' => 'Import histori SPP dari Excel lama',
-                ],
+            app(SppImportService::class)->syncPayment(
+                $siswa,
+                $info['bulan'],
+                $info['tahun'],
+                $nominal,
+                'Import histori SPP dari Excel lama',
+                $this->errors,
             );
         }
     }

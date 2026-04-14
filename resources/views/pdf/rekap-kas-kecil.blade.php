@@ -46,6 +46,7 @@
                 <th>Uraian</th>
                 <th style="width: 90px;">No Ref</th>
                 <th style="width: 110px;">Kredit</th>
+                <th style="width: 110px;">Saldo</th>
             </tr>
         </thead>
         <tbody>
@@ -57,6 +58,7 @@
                     <td>{{ $row['uraian'] }}</td>
                     <td>{{ $row['no_ref'] }}</td>
                     <td class="right">{{ number_format($row['nominal'], 0, ',', '.') }}</td>
+                    <td class="right">{{ number_format($row['saldo'] ?? 0, 0, ',', '.') }}</td>
                 </tr>
             @endforeach
         </tbody>

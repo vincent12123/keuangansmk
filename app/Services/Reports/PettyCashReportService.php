@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\KasKecil;
 use App\Models\PengisianKasKecil;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 class PettyCashReportService
@@ -34,6 +35,8 @@ class PettyCashReportService
 
     protected function getTransactions(int $bulan, int $tahun): Collection
     {
+        $runningBalances = $this->getRunningBalances($bulan, $tahun);
+
         return KasKecil::query()
             ->with('kodeAkun')
             ->where('bulan', $bulan)
@@ -41,14 +44,16 @@ class PettyCashReportService
             ->orderBy('tanggal')
             ->orderBy('id')
             ->get()
-            ->map(function (KasKecil $kasKecil): array {
+            ->map(function (KasKecil $kasKecil) use ($runningBalances): array {
                 return [
+                    'id' => $kasKecil->id,
                     'tanggal' => $kasKecil->tanggal,
                     'no_ref' => $kasKecil->no_ref,
                     'kode' => $kasKecil->kodeAkun?->kode ?? '-',
                     'nama' => $kasKecil->kodeAkun?->nama ?? '-',
                     'uraian' => $kasKecil->uraian,
                     'nominal' => (float) $kasKecil->nominal,
+                    'saldo' => (float) Arr::get($runningBalances, $kasKecil->id, 0),
                 ];
             });
     }
@@ -70,5 +75,62 @@ class PettyCashReportService
                     'total' => (float) $row->total_nominal,
                 ];
             });
+    }
+
+    protected function getRunningBalances(int $bulan, int $tahun): array
+    {
+        $events = collect();
+
+        PengisianKasKecil::query()
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get()
+            ->each(function (PengisianKasKecil $pengisian) use ($events): void {
+                $events->push([
+                    'type' => 'pengisian',
+                    'id' => $pengisian->id,
+                    'sort_date' => $pengisian->tanggal?->format('Y-m-d') ?? '',
+                    'sort_weight' => 0,
+                    'nominal' => (float) $pengisian->nominal,
+                ]);
+            });
+
+        KasKecil::query()
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get()
+            ->each(function (KasKecil $kasKecil) use ($events): void {
+                $events->push([
+                    'type' => 'pengeluaran',
+                    'id' => $kasKecil->id,
+                    'sort_date' => $kasKecil->tanggal?->format('Y-m-d') ?? '',
+                    'sort_weight' => 1,
+                    'nominal' => (float) $kasKecil->nominal,
+                ]);
+            });
+
+        $saldo = 0.0;
+        $runningBalances = [];
+
+        foreach ($events->sortBy([
+            ['sort_date', 'asc'],
+            ['sort_weight', 'asc'],
+            ['id', 'asc'],
+        ]) as $event) {
+            if ($event['type'] === 'pengisian') {
+                $saldo += $event['nominal'];
+
+                continue;
+            }
+
+            $saldo -= $event['nominal'];
+            $runningBalances[$event['id']] = $saldo;
+        }
+
+        return $runningBalances;
     }
 }

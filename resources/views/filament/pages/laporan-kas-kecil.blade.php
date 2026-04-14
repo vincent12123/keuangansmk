@@ -81,6 +81,7 @@
                         <th class="px-4 py-2 text-left">Kode</th>
                         <th class="px-4 py-2 text-left">Uraian</th>
                         <th class="px-4 py-2 text-right">Nominal</th>
+                        <th class="px-4 py-2 text-right">Saldo</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -94,10 +95,11 @@
                             </td>
                             <td class="px-4 py-2">{{ $row['uraian'] }}</td>
                             <td class="px-4 py-2 text-right font-medium text-rose-700">Rp {{ number_format($row['nominal'], 0, ',', '.') }}</td>
+                            <td class="px-4 py-2 text-right font-medium text-sky-700">Rp {{ number_format($row['saldo'] ?? 0, 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-6 text-center text-gray-400">Belum ada transaksi kas kecil.</td>
+                            <td colspan="6" class="px-4 py-6 text-center text-gray-400">Belum ada transaksi kas kecil.</td>
                         </tr>
                     @endforelse
                 </tbody>

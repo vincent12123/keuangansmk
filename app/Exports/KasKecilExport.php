@@ -19,7 +19,6 @@ class KasKecilExport implements FromArray, ShouldAutoSize, WithStyles
     public function array(): array
     {
         $report = app(PettyCashReportService::class)->build($this->bulan, $this->tahun);
-        $saldo = $report['total_pengisian'];
 
         $rows = [
             ['SMK KARYA BANGSA SINTANG'],
@@ -35,8 +34,6 @@ class KasKecilExport implements FromArray, ShouldAutoSize, WithStyles
         ];
 
         foreach ($report['transactions'] as $index => $row) {
-            $saldo -= (float) $row['nominal'];
-
             $rows[] = [
                 $index + 1,
                 $row['tanggal']?->format('d/m/Y'),
@@ -44,7 +41,7 @@ class KasKecilExport implements FromArray, ShouldAutoSize, WithStyles
                 $row['uraian'],
                 $row['no_ref'],
                 $row['nominal'],
-                $saldo,
+                $row['saldo'],
             ];
         }
 

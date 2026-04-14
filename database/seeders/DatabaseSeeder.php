@@ -90,9 +90,20 @@ class DatabaseSeeder extends Seeder
         );
         $kepalaSekolahUser->syncRoles(['kepala_sekolah']);
 
-        $this->call([
-            SiswaSeeder::class,
-            DummyFinanceSeeder::class,
-        ]);
+        if ($this->shouldSeedDemoData()) {
+            $this->call([
+                SiswaSeeder::class,
+                DummyFinanceSeeder::class,
+            ]);
+        }
+    }
+
+    protected function shouldSeedDemoData(): bool
+    {
+        if (app()->environment(['local', 'testing'])) {
+            return true;
+        }
+
+        return filter_var(env('SEED_DEMO_DATA', false), FILTER_VALIDATE_BOOL);
     }
 }

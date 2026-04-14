@@ -2,9 +2,9 @@
 
 namespace App\Imports;
 
-use App\Models\KartuSpp;
 use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Services\SppImportService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -138,18 +138,13 @@ class SiswaImport implements ToCollection
             return;
         }
 
-        KartuSpp::updateOrCreate(
-            [
-                'nis' => $siswa->nis,
-                'bulan' => $bulan,
-                'tahun' => $tahun,
-            ],
-            [
-                'nominal' => $nominal,
-                'tgl_bayar' => now()->toDateString(),
-                'jurnal_kas_id' => null,
-                'keterangan' => 'Import dari Excel lama',
-            ],
+        app(SppImportService::class)->syncPayment(
+            $siswa,
+            $bulan,
+            $tahun,
+            $nominal,
+            'Import dari Excel lama',
+            $this->errors,
         );
     }
 
