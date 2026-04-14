@@ -75,7 +75,7 @@ class DatabaseSeeder extends Seeder
         $bendaharaUser = User::firstOrCreate(
             ['email' => 'bendahara@karyabangsa.sch.id'],
             [
-                'name' => 'Bendahara SMK',
+                'name' => 'Senty',
                 'password' => bcrypt('Bendahara@1234'),
             ],
         );
@@ -84,7 +84,7 @@ class DatabaseSeeder extends Seeder
         $kepalaSekolahUser = User::firstOrCreate(
             ['email' => 'kepalasekolah@karyabangsa.sch.id'],
             [
-                'name' => 'Kepala Sekolah',
+                'name' => 'Bill Yosua, S.Pd., M.Pd., Gr.',
                 'password' => bcrypt('KepalaSekolah@1234'),
             ],
         );

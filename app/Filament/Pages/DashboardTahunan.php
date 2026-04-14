@@ -23,10 +23,20 @@ class DashboardTahunan extends Page
     protected string $view = 'filament.pages.dashboard-tahunan';
 
     public int $tahun;
+    public string $quarter = 'ALL';
 
     public function mount(): void
     {
         $this->tahun = now()->year;
+    }
+
+    public function setQuarter(string $quarter): void
+    {
+        if (! in_array($quarter, ['ALL', 'Q1', 'Q2', 'Q3', 'Q4'], true)) {
+            return;
+        }
+
+        $this->quarter = $quarter;
     }
 
     public static function canAccess(): bool

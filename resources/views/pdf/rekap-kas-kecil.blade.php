@@ -13,7 +13,9 @@
         .right { text-align: right; }
         .ttd { width: 100%; margin-top: 28px; }
         .ttd td { width: 50%; text-align: center; vertical-align: top; }
-        .line { display: inline-block; min-width: 180px; border-top: 1px solid #000; margin-top: 52px; }
+        .ttd-meta { margin-bottom: 10px; }
+        .ttd-role { margin-bottom: 52px; }
+        .ttd-name { display: inline-block; min-width: 180px; border-top: 1px solid #000; padding-top: 6px; }
     </style>
 </head>
 <body>
@@ -67,12 +69,14 @@
     <table class="ttd">
         <tr>
             <td>
-                Mengetahui,<br>Kepala Sekolah
-                <div class="line">{{ $namaKepalaSekolah }}</div>
+                <div class="ttd-meta">Mengetahui,</div>
+                <div class="ttd-role">Kepala Sekolah</div>
+                <div class="ttd-name">{{ $namaKepalaSekolah }}</div>
             </td>
             <td>
-                Sintang, {{ now()->format('d/m/Y') }}<br>Bendahara
-                <div class="line">{{ $namaBendahara }}</div>
+                <div class="ttd-meta">Sintang, {{ now()->format('d/m/Y') }}</div>
+                <div class="ttd-role">Bendahara</div>
+                <div class="ttd-name">{{ $namaBendahara }}</div>
             </td>
         </tr>
     </table>

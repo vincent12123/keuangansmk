@@ -9,8 +9,9 @@
         .meta td { padding: 4px 0; vertical-align: top; }
         .amount-box { border: 2px solid #000; padding: 12px; margin: 18px 0; text-align: center; }
         .amount-main { font-size: 22px; font-weight: bold; }
-        .ttd td { width: 50%; text-align: center; padding-top: 36px; }
-        .name-line { margin-top: 60px; display: inline-block; min-width: 180px; border-top: 1px solid #000; }
+        .ttd td { width: 50%; text-align: center; padding-top: 36px; vertical-align: top; }
+        .ttd-role { margin-bottom: 52px; }
+        .ttd-name { display: inline-block; min-width: 180px; border-top: 1px solid #000; padding-top: 6px; }
     </style>
 </head>
 <body>
@@ -62,12 +63,12 @@
     <table class="ttd">
         <tr>
             <td>
-                Penyetor<br>
-                <span class="name-line">{{ $transaksi->nama_penyetor }}</span>
+                <div class="ttd-role">Penyetor</div>
+                <div class="ttd-name">{{ $transaksi->nama_penyetor }}</div>
             </td>
             <td>
-                Bendahara<br>
-                <span class="name-line">{{ $namaBendahara }}</span>
+                <div class="ttd-role">Bendahara</div>
+                <div class="ttd-name">{{ $namaBendahara }}</div>
             </td>
         </tr>
     </table>

@@ -350,23 +350,8 @@ class JurnalKasResource extends Resource
                     ->icon('heroicon-o-printer')
                     ->color('info')
                     ->visible(fn (JurnalKas $record): bool => $record->jenis === 'masuk')
-                    ->action(function (JurnalKas $record) {
-                        app(AuditTrailService::class)->logPrint('kwitansi_pdf', [
-                            'jurnal_kas_id' => $record->id,
-                            'no_kwitansi' => $record->no_kwitansi,
-                            'tanggal' => optional($record->tanggal)->toDateString(),
-                        ]);
-
-                        return app(ExportPdfService::class)->stream(
-                            'pdf.kwitansi',
-                            [
-                                'transaksi' => $record->load(['kodeAkun', 'kelas']),
-                                'terbilang' => app(TerbilangService::class)->convert((float) $record->cash + (float) $record->bank),
-                                'namaBendahara' => auth()->user()?->name ?? 'Bendahara',
-                            ],
-                            'kwitansi-' . ($record->no_kwitansi ?: $record->id) . '.pdf',
-                        );
-                    }),
+                    ->url(fn (JurnalKas $record): string => route('pdf.kwitansi', $record))
+                    ->openUrlInNewTab(),
                 Actions\EditAction::make(),
                 Actions\DeleteAction::make(),
             ])

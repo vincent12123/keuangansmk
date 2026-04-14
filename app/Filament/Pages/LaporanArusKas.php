@@ -75,24 +75,11 @@ class LaporanArusKas extends Page
                 ->label('Cetak PDF')
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->action(function () {
-                    app(AuditTrailService::class)->logPrint('arus_kas_pdf', [
-                        'bulan' => $this->bulan,
-                        'tahun' => $this->tahun,
-                    ]);
-
-                    return app(ExportPdfService::class)->stream(
-                        'pdf.arus-kas-bulanan',
-                        [
-                            'report' => $this->reportData,
-                            'namaBulan' => ReportHelper::monthName($this->bulan),
-                            'tahun' => $this->tahun,
-                            'namaBendahara' => 'Bendahara SMK',
-                            'namaKepalaSekolah' => 'Kepala Sekolah',
-                        ],
-                        'Arus-Kas-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.pdf',
-                    );
-                }),
+                ->url(fn (): string => route('pdf.arus-kas', [
+                    'bulan' => $this->bulan,
+                    'tahun' => $this->tahun,
+                ]))
+                ->openUrlInNewTab(),
         ];
     }
 

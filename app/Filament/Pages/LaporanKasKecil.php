@@ -66,24 +66,11 @@ class LaporanKasKecil extends Page
                 ->label('Cetak PDF')
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->action(function () {
-                    app(AuditTrailService::class)->logPrint('rekap_kas_kecil_pdf', [
-                        'bulan' => $this->bulan,
-                        'tahun' => $this->tahun,
-                    ]);
-
-                    return app(ExportPdfService::class)->stream(
-                        'pdf.rekap-kas-kecil',
-                        [
-                            'report' => $this->reportData,
-                            'namaBulan' => ReportHelper::monthName($this->bulan),
-                            'tahun' => $this->tahun,
-                            'namaBendahara' => 'Bendahara SMK',
-                            'namaKepalaSekolah' => 'Kepala Sekolah',
-                        ],
-                        'Rekap-Kas-Kecil-' . ReportHelper::monthName($this->bulan) . '-' . $this->tahun . '.pdf',
-                    );
-                }),
+                ->url(fn (): string => route('pdf.rekap-kas-kecil', [
+                    'bulan' => $this->bulan,
+                    'tahun' => $this->tahun,
+                ]))
+                ->openUrlInNewTab(),
         ];
     }
 
