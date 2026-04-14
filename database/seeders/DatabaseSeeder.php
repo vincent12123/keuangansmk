@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             'view_kartu_spp', 'create_kartu_spp', 'edit_kartu_spp',
             'view_laporan_arus_kas', 'view_laporan_kas_kecil',
             'view_laporan_spp', 'export_laporan',
+            'view_audit_trail',
             'view_anggaran', 'create_anggaran', 'edit_anggaran',
             'view_dashboard',
         ];
