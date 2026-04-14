@@ -24,13 +24,13 @@ class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
         KodeAkun::class => KodeAkunPolicy::class,
-        Jurusan::class  => JurusanPolicy::class,
-        Kelas::class    => KelasPolicy::class,
-        Siswa::class    => SiswaPolicy::class,
+        Jurusan::class => JurusanPolicy::class,
+        Kelas::class => KelasPolicy::class,
+        Siswa::class => SiswaPolicy::class,
         JurnalKas::class => JurnalKasPolicy::class,
-        KasKecil::class  => KasKecilPolicy::class,
-        KartuSpp::class  => KartuSppPolicy::class,
-        Anggaran::class  => AnggaranPolicy::class,
+        KasKecil::class => KasKecilPolicy::class,
+        KartuSpp::class => KartuSppPolicy::class,
+        Anggaran::class => AnggaranPolicy::class,
     ];
 
     public function boot(): void

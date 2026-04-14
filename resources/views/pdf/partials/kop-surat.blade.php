@@ -3,8 +3,8 @@
         <td style="vertical-align:middle;">
             <div style="font-size:16px; font-weight:bold;">SMK KARYA BANGSA SINTANG</div>
             <div style="font-size:10px; color:#444;">
-                Sistem Keuangan Sekolah<br>
-                Laporan internal pengembangan aplikasi
+                Sistem Administrasi Keuangan Sekolah<br>
+                Sintang, Kalimantan Barat
             </div>
         </td>
     </tr>

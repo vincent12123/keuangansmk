@@ -30,7 +30,7 @@ class JurnalKasObserver
             ? $jurnal->kodeAkun
             : KodeAkun::find($jurnal->kode_akun_id);
 
-        $bulanDibayar = session()->pull('spp_bulan_pending');
+        $bulanDibayar = $jurnal->bulanSppPending ?? null;
 
         if (blank($bulanDibayar) && $jurnal->exists) {
             $bulanDibayar = KartuSpp::where('jurnal_kas_id', $jurnal->id)

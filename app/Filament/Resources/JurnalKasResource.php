@@ -442,12 +442,7 @@ class JurnalKasResource extends Resource
             $data['kelas_id'] = null;
         }
 
-        $bulanSpp = collect($data['bulan_spp'] ?? [])
-            ->map(fn ($bulan) => (int) $bulan)
-            ->filter(fn (int $bulan) => $bulan >= 1 && $bulan <= 12)
-            ->unique()
-            ->values()
-            ->all();
+        $bulanSpp = static::extractPendingSppMonths($data);
 
         if (in_array($kodeAkun->kode, JurnalKas::SPP_ACCOUNT_CODES, true)) {
             if (blank($data['nis'] ?? null)) {
@@ -481,14 +476,21 @@ class JurnalKasResource extends Resource
                 ]);
             }
 
-            session(['spp_bulan_pending' => $bulanSpp]);
-        } else {
-            session()->forget('spp_bulan_pending');
         }
 
         unset($data['bulan_spp']);
 
         return $data;
+    }
+
+    public static function extractPendingSppMonths(array $data): array
+    {
+        return collect($data['bulan_spp'] ?? [])
+            ->map(fn ($bulan) => (int) $bulan)
+            ->filter(fn (int $bulan) => $bulan >= 1 && $bulan <= 12)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected static function getJurnalKodeAkunOptions(): array

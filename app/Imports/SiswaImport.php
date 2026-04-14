@@ -26,7 +26,8 @@ class SiswaImport implements ToCollection
         }
 
         $firstRow = collect($rows->first())->map(fn ($value) => $this->normalize((string) $value))->all();
-        $hasHeading = in_array('nis', $firstRow, true) && in_array('kelas', $firstRow, true);
+        $hasHeading = $this->containsAnyKey($firstRow, ['nis', 'nisn', 'nis_nisn'])
+            && $this->containsAnyKey($firstRow, ['kelas', 'kelas_siswa']);
 
         if ($hasHeading) {
             $headers = collect($rows->shift())->map(fn ($value) => $this->normalize((string) $value))->values()->all();
@@ -59,15 +60,16 @@ class SiswaImport implements ToCollection
             $indexed[$header] = $row[$index] ?? null;
         }
 
-        $nis = trim((string) ($indexed['nis'] ?? ''));
-        $nama = trim((string) ($indexed['nama'] ?? ''));
-        $kelasName = trim((string) ($indexed['kelas'] ?? ''));
+        $nis = trim((string) $this->getIndexedValue($indexed, ['nis', 'nisn', 'nis_nisn']));
+        $nama = trim((string) $this->getIndexedValue($indexed, ['nama', 'nama_siswa']));
+        $kelasName = trim((string) $this->getIndexedValue($indexed, ['kelas', 'kelas_siswa']));
+        $nominalSpp = $this->extractNumeric($this->getIndexedValue($indexed, ['nominal_spp', 'spp']));
 
         if ($nis === '' || $nama === '' || $kelasName === '') {
             return;
         }
 
-        $siswa = $this->upsertSiswa($nis, $nama, $kelasName);
+        $siswa = $this->upsertSiswa($nis, $nama, $kelasName, $nominalSpp > 0 ? $nominalSpp : null);
 
         if (! $siswa) {
             return;
@@ -100,7 +102,7 @@ class SiswaImport implements ToCollection
         }
     }
 
-    protected function upsertSiswa(string $nis, string $nama, string $kelasName): ?Siswa
+    protected function upsertSiswa(string $nis, string $nama, string $kelasName, ?float $nominalSppFromExcel = null): ?Siswa
     {
         $kelas = $this->resolveKelas($kelasName);
 
@@ -110,12 +112,18 @@ class SiswaImport implements ToCollection
             return null;
         }
 
-        $nominalSpp = match ($kelas->jurusan?->kode) {
+        $existingSiswa = Siswa::query()->where('nis', $nis)->first();
+
+        $nominalDefault = match ($kelas->jurusan?->kode) {
             'RPL' => 400000,
             'TBSM' => 375000,
             'HTL' => 425000,
             default => 400000,
         };
+
+        $nominalSpp = $nominalSppFromExcel && $nominalSppFromExcel > 0
+            ? $nominalSppFromExcel
+            : (float) ($existingSiswa?->nominal_spp ?? $nominalDefault);
 
         return Siswa::updateOrCreate(
             ['nis' => $nis],
@@ -229,7 +237,36 @@ class SiswaImport implements ToCollection
 
     protected function normalize(string $value): string
     {
-        return strtolower(trim($value));
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9]+/', '_', $value) ?? '';
+
+        return trim($value, '_');
+    }
+
+    protected function getIndexedValue(array $indexed, array $keys): mixed
+    {
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $indexed)) {
+                continue;
+            }
+
+            if (filled($indexed[$key])) {
+                return $indexed[$key];
+            }
+        }
+
+        return null;
+    }
+
+    protected function containsAnyKey(array $keys, array $candidates): bool
+    {
+        foreach ($candidates as $candidate) {
+            if (in_array($candidate, $keys, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function extractNumeric(mixed $value): float

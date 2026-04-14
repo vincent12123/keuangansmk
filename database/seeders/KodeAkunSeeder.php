@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class KodeAkunSeeder extends Seeder
 {
@@ -135,6 +136,27 @@ class KodeAkunSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
+        }
+
+        $codes = DB::table('kode_akun')->pluck('kode');
+
+        $parentCodes = $codes
+            ->filter(function (string $kode) use ($codes): bool {
+                $prefix = substr($kode, 0, -2);
+
+                return Str::endsWith($kode, '.00')
+                    && $codes->contains(fn (string $candidate) => $candidate !== $kode && Str::startsWith($candidate, $prefix));
+            })
+            ->values()
+            ->all();
+
+        if ($parentCodes !== []) {
+            DB::table('kode_akun')
+                ->whereIn('kode', $parentCodes)
+                ->update([
+                    'sub_kategori' => null,
+                    'updated_at' => now(),
+                ]);
         }
     }
 }

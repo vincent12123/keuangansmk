@@ -14,6 +14,8 @@ class JurnalKas extends Model
     use LogsActivity;
     use SoftDeletes;
 
+    public array $bulanSppPending = [];
+
     public const SPP_ACCOUNT_CODES = [
         '4.01.01.00',
         '4.01.02.00',

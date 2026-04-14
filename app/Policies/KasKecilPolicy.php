@@ -33,9 +33,8 @@ class KasKecilPolicy
             return ! app(SaldoKasService::class)->isLocked($kasKecil->bulan, $kasKecil->tahun);
         }
 
-        // Bendahara hanya bisa edit kas kecil bulan berjalan
-        return $kasKecil->bulan === now()->month
-            && $kasKecil->tahun === now()->year
+        // Bendahara mengikuti batas koreksi yang sama dengan jurnal kas: 3 hari terakhir.
+        return ($kasKecil->created_at?->gte(now()->subDays(3)) ?? false)
             && ! app(SaldoKasService::class)->isLocked($kasKecil->bulan, $kasKecil->tahun);
     }
 

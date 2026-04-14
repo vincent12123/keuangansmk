@@ -100,6 +100,10 @@ class DatabaseSeeder extends Seeder
 
     protected function shouldSeedDemoData(): bool
     {
+        if (app()->environment('production')) {
+            return false;
+        }
+
         if (app()->environment(['local', 'testing'])) {
             return true;
         }
