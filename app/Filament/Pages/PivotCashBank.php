@@ -39,9 +39,7 @@ class PivotCashBank extends Page
 
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isAdmin() || $user?->isBendahara();
+        return auth()->user()?->hasPermissionTo('view_laporan_arus_kas') ?? false;
     }
 
     protected function getHeaderActions(): array

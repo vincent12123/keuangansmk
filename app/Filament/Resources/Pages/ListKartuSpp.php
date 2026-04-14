@@ -73,12 +73,18 @@ class ListKartuSpp extends ListRecords
                         'file' => $data['file'],
                     ]);
 
+                    $errorCount = count($import->getErrors());
+
                     Notification::make()
                         ->title('Import histori SPP selesai')
-                        ->body(count($import->getErrors()) > 0
-                            ? 'Ada ' . count($import->getErrors()) . ' baris yang perlu dicek.'
+                        ->body($errorCount > 0
+                            ? 'Ada ' . $errorCount . ' baris yang perlu dicek. Lihat audit trail atau ulangi setelah diperbaiki.'
                             : 'Histori SPP berhasil diimpor.')
-                        ->success()
+                        ->when(
+                            $errorCount > 0,
+                            fn (Notification $notification) => $notification->warning(),
+                            fn (Notification $notification) => $notification->success(),
+                        )
                         ->send();
                 }),
         ];

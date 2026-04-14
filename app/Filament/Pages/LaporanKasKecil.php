@@ -40,9 +40,7 @@ class LaporanKasKecil extends Page
 
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isAdmin() || $user?->isBendahara();
+        return auth()->user()?->hasPermissionTo('view_laporan_kas_kecil') ?? false;
     }
 
     protected function getHeaderActions(): array

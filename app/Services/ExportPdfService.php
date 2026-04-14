@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExportPdfService
 {
@@ -13,7 +13,7 @@ class ExportPdfService
         string $filename,
         string $orientation = 'portrait',
         string $paper = 'a4'
-    ): StreamedResponse {
+    ): Response {
         $pdf = Pdf::loadView($view, $data)
             ->setPaper($paper, $orientation);
 
@@ -30,7 +30,13 @@ class ExportPdfService
         string $filename,
         string $orientation = 'portrait',
         string $paper = 'a4'
-    ): StreamedResponse {
-        return $this->download($view, $data, $filename, $orientation, $paper);
+    ): Response {
+        $pdf = Pdf::loadView($view, $data)
+            ->setPaper($paper, $orientation);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 }
