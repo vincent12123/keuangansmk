@@ -59,14 +59,7 @@
                         Monitoring Anggaran Tahunan
                     </div>
 
-                    <div class="space-y-3">
-                        <div class="text-2xl font-semibold tracking-tight lg:text-3xl">
-                            Dashboard Tahunan Monitoring Anggaran
-                        </div>
-                        <div class="text-sm font-medium text-slate-600 dark:text-slate-300">
-                            Tahun Buku {{ $this->tahun }}
-                        </div>
-                    </div>
+
 
                     <div class="grid gap-3 sm:grid-cols-3">
                         <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
