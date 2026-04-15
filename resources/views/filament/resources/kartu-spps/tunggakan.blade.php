@@ -48,11 +48,11 @@
             </div>
         </div>
 
-        @if (config('spp_integration.enabled'))
-            <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
-                Data tunggakan diambil langsung dari SmartSIS.
-            </div>
-        @endif
+@if (config('spp_integration.enabled'))
+    <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+        Data tunggakan menggunakan hasil sinkronisasi SmartSIS di database lokal.
+    </div>
+@endif
 
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
             <table class="w-full text-sm">

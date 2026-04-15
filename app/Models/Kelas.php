@@ -9,9 +9,9 @@ class Kelas extends Model
 {
     protected $table = 'kelas';
 
-    protected $fillable = ['jurusan_id', 'tingkat', 'nama_kelas', 'aktif'];
+    protected $fillable = ['jurusan_id', 'tingkat', 'nama_kelas', 'aktif', 'external_source', 'external_reference', 'external_payload', 'external_synced_at'];
 
-    protected $casts = ['aktif' => 'boolean'];
+    protected $casts = ['aktif' => 'boolean', 'external_payload' => 'array', 'external_synced_at' => 'datetime'];
 
     public function jurusan(): BelongsTo
     {

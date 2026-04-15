@@ -44,7 +44,7 @@
 
         @if (config('spp_integration.enabled'))
             <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
-                Rekap tunggakan SPP diambil langsung dari SmartSIS.
+                Rekap tunggakan SPP menggunakan data hasil sinkronisasi SmartSIS di database lokal.
             </div>
         @endif
 

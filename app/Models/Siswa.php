@@ -20,11 +20,14 @@ class Siswa extends Model
         'nis', 'nama', 'kelas_id', 'jurusan_id',
         'angkatan', 'nominal_spp', 'status',
         'no_hp_wali', 'nama_wali',
+        'external_source', 'external_reference', 'external_payload', 'external_synced_at',
     ];
 
     protected $casts = [
         'angkatan'    => 'integer',
         'nominal_spp' => 'decimal:0',
+        'external_payload' => 'array',
+        'external_synced_at' => 'datetime',
     ];
 
     // ─── Relations ───────────────────────────────────────────

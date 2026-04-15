@@ -6,9 +6,11 @@ use App\Exports\TunggakanSppExport;
 use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Services\AuditTrailService;
+use App\Services\Integrations\SmartsisReferenceSyncService;
 use App\Services\Reports\SppArrearsReportService;
 use App\Support\ReportHelper;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
 use Maatwebsite\Excel\Facades\Excel;
@@ -51,6 +53,26 @@ class LaporanTunggakanSpp extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('sync_smartsis')
+                ->label('Sync SmartSIS')
+                ->icon('heroicon-o-arrow-path')
+                ->color('info')
+                ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
+                ->action(function () {
+                    $result = app(SmartsisReferenceSyncService::class)->syncForMonth($this->bulan, $this->tahun);
+
+                    Notification::make()
+                        ->title('Sinkronisasi SmartSIS selesai')
+                        ->body(sprintf(
+                            'Master siswa %d, tunggakan %d baris untuk %s %d.',
+                            ($result['master']['siswa_created'] ?? 0) + ($result['master']['siswa_updated'] ?? 0),
+                            ($result['arrears']['created'] ?? 0) + ($result['arrears']['updated'] ?? 0),
+                            ReportHelper::monthName($this->bulan),
+                            $this->tahun,
+                        ))
+                        ->success()
+                        ->send();
+                }),
             Actions\Action::make('export_excel')
                 ->label('Export Excel')
                 ->icon('heroicon-o-arrow-down-tray')

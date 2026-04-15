@@ -112,6 +112,32 @@ class SmartsisSppSyncService
         ];
     }
 
+    public function syncYear(int $tahun, int $actorId): array
+    {
+        $totals = [
+            'months' => [],
+            'fetched' => 0,
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'deleted' => 0,
+            'errors' => [],
+        ];
+
+        for ($bulan = 1; $bulan <= 12; $bulan++) {
+            $result = $this->syncMonth($bulan, $tahun, $actorId);
+            $totals['months'][$bulan] = $result;
+            $totals['fetched'] += (int) ($result['fetched'] ?? 0);
+            $totals['created'] += (int) ($result['created'] ?? 0);
+            $totals['updated'] += (int) ($result['updated'] ?? 0);
+            $totals['skipped'] += (int) ($result['skipped'] ?? 0);
+            $totals['deleted'] += (int) ($result['deleted'] ?? 0);
+            $totals['errors'] = array_merge($totals['errors'], $result['errors'] ?? []);
+        }
+
+        return $totals;
+    }
+
     protected function buildDescription(array $payment): string
     {
         $bulanTagihan = $payment['bulan_tagihan'] ?? null;

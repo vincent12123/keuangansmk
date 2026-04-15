@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Services\Integrations\SmartsisSppSyncService;
 use App\Services\Reports\DashboardTahunanReportService;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
 
@@ -48,6 +51,33 @@ class DashboardTahunan extends Page
     public static function canAccess(): bool
     {
         return auth()->user()?->hasPermissionTo('view_dashboard') ?? false;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('sync_smartsis_year')
+                ->label('Sync SPP Setahun')
+                ->icon('heroicon-o-arrow-path')
+                ->color('info')
+                ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
+                ->action(function () {
+                    $result = app(SmartsisSppSyncService::class)->syncYear($this->tahun, auth()->id());
+
+                    Notification::make()
+                        ->title('Sinkronisasi SPP tahunan selesai')
+                        ->body(sprintf(
+                            'Fetched %d, create %d, update %d, delete %d untuk tahun %d.',
+                            $result['fetched'] ?? 0,
+                            $result['created'] ?? 0,
+                            $result['updated'] ?? 0,
+                            $result['deleted'] ?? 0,
+                            $this->tahun,
+                        ))
+                        ->success()
+                        ->send();
+                }),
+        ];
     }
 
     #[Computed]

@@ -15,7 +15,7 @@ class DashboardTahunanReportService
     {
         $jurnal = JurnalKas::query()
             ->where('tahun', $tahun)
-            ->selectRaw('bulan, kode_akun_id, SUM(cash + bank) as total')
+            ->selectRaw('bulan, kode_akun_id, SUM(cash + bank) as total_nominal')
             ->groupBy('bulan', 'kode_akun_id')
             ->get();
 
@@ -28,7 +28,7 @@ class DashboardTahunanReportService
         $matrix = [];
 
         foreach ($jurnal as $row) {
-            $matrix[$row->kode_akun_id][$row->bulan] = ($matrix[$row->kode_akun_id][$row->bulan] ?? 0) + (float) $row->total;
+            $matrix[$row->kode_akun_id][$row->bulan] = ($matrix[$row->kode_akun_id][$row->bulan] ?? 0) + (float) $row->total_nominal;
         }
 
         foreach ($kasKecil as $row) {

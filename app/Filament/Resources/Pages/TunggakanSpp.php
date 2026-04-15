@@ -4,9 +4,12 @@ namespace App\Filament\Resources\Pages;
 
 use App\Filament\Resources\KartuSppResource;
 use App\Models\Jurusan;
+use App\Services\Integrations\SmartsisReferenceSyncService;
 use App\Services\Reports\SppArrearsReportService;
+use Filament\Actions\Action;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Livewire\Attributes\Computed;
 
@@ -26,6 +29,30 @@ class TunggakanSpp extends Page implements HasForms
     {
         $this->bulan = now()->month;
         $this->tahun = now()->year;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('sync_smartsis')
+                ->label('Sync SmartSIS')
+                ->icon('heroicon-o-arrow-path')
+                ->color('info')
+                ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
+                ->action(function () {
+                    $result = app(SmartsisReferenceSyncService::class)->syncForMonth($this->bulan, $this->tahun);
+
+                    Notification::make()
+                        ->title('Sinkronisasi SmartSIS selesai')
+                        ->body(sprintf(
+                            'Master siswa %d, tunggakan %d baris.',
+                            ($result['master']['siswa_created'] ?? 0) + ($result['master']['siswa_updated'] ?? 0),
+                            ($result['arrears']['created'] ?? 0) + ($result['arrears']['updated'] ?? 0),
+                        ))
+                        ->success()
+                        ->send();
+                }),
+        ];
     }
 
     // Ambil data tunggakan berdasarkan filter
