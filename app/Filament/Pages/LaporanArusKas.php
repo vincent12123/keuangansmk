@@ -3,9 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Exports\ArusKasBulananExport;
+use App\Jobs\SyncSmartsisYearToDateJob;
 use App\Services\AuditTrailService;
 use App\Services\ExportPdfService;
-use App\Services\Integrations\SmartsisSppSyncService;
 use App\Services\Reports\CashFlowReportService;
 use App\Services\Reports\SaldoKasService;
 use App\Support\ReportHelper;
@@ -82,53 +82,22 @@ class LaporanArusKas extends Page
                 ]))
                 ->openUrlInNewTab(),
             Actions\Action::make('sync_spp_smartsis')
-                ->label('Sync SPP SmartSIS')
+                ->label('Sync Semua Data SmartSIS')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
                 ->visible(fn (): bool => auth()->user()?->isAdmin() && (bool) config('spp_integration.enabled'))
                 ->requiresConfirmation()
-                ->modalHeading('Sinkronkan pembayaran SPP')
-                ->modalDescription('Tarik pembayaran SPP dari SmartSIS untuk bulan dan tahun yang sedang dipilih, lalu simpan ke jurnal kas tanpa duplikasi.')
+                ->modalHeading('Sinkronkan semua data SmartSIS')
+                ->modalDescription('Tarik pembayaran SPP, master siswa/kelas/jurusan, dan tunggakan SPP dari bulan 1 sampai bulan berjalan untuk tahun yang dipilih, lalu simpan ke database lokal.')
                 ->action(function () {
                     $this->authorizeAdminAction();
-
-                    if (app(SaldoKasService::class)->isLocked($this->bulan, $this->tahun)) {
-                        Notification::make()
-                            ->title('Bulan ini sudah dikunci.')
-                            ->body('Buka kunci bulan terlebih dahulu sebelum melakukan sinkronisasi SPP dari SmartSIS.')
-                            ->warning()
-                            ->send();
-
-                        return;
-                    }
-
-                    $result = app(SmartsisSppSyncService::class)
-                        ->syncMonth($this->bulan, $this->tahun, auth()->id());
-
-                    unset($this->reportData);
+                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
 
                     Notification::make()
-                        ->title('Sinkronisasi SPP selesai.')
-                        ->body(
-                            sprintf(
-                                'Diambil %d data. Baru: %d, diperbarui: %d, dilewati: %d, dihapus: %d.',
-                                $result['fetched'],
-                                $result['created'],
-                                $result['updated'],
-                                $result['skipped'],
-                                $result['deleted'],
-                            )
-                        )
+                        ->title('Sync SmartSIS dimulai')
+                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
                         ->success()
                         ->send();
-
-                    if ($result['errors'] !== []) {
-                        Notification::make()
-                            ->title('Ada data yang tidak tersinkron penuh.')
-                            ->body(implode(' ', array_slice($result['errors'], 0, 3)))
-                            ->warning()
-                            ->send();
-                    }
                 }),
         ];
     }

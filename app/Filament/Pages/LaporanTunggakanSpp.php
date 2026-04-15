@@ -3,10 +3,10 @@
 namespace App\Filament\Pages;
 
 use App\Exports\TunggakanSppExport;
+use App\Jobs\SyncSmartsisYearToDateJob;
 use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Services\AuditTrailService;
-use App\Services\Integrations\SmartsisReferenceSyncService;
 use App\Services\Reports\SppArrearsReportService;
 use App\Support\ReportHelper;
 use Filament\Actions;
@@ -54,22 +54,17 @@ class LaporanTunggakanSpp extends Page
     {
         return [
             Actions\Action::make('sync_smartsis')
-                ->label('Sync SmartSIS')
+                ->label('Sync Semua Data SmartSIS')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
                 ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
+                ->requiresConfirmation()
                 ->action(function () {
-                    $result = app(SmartsisReferenceSyncService::class)->syncForMonth($this->bulan, $this->tahun);
+                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
 
                     Notification::make()
-                        ->title('Sinkronisasi SmartSIS selesai')
-                        ->body(sprintf(
-                            'Master siswa %d, tunggakan %d baris untuk %s %d.',
-                            ($result['master']['siswa_created'] ?? 0) + ($result['master']['siswa_updated'] ?? 0),
-                            ($result['arrears']['created'] ?? 0) + ($result['arrears']['updated'] ?? 0),
-                            ReportHelper::monthName($this->bulan),
-                            $this->tahun,
-                        ))
+                        ->title('Sync SmartSIS dimulai')
+                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
                         ->success()
                         ->send();
                 }),

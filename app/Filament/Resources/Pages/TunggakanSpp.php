@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Pages;
 
+use App\Jobs\SyncSmartsisYearToDateJob;
 use App\Filament\Resources\KartuSppResource;
 use App\Models\Jurusan;
-use App\Services\Integrations\SmartsisReferenceSyncService;
 use App\Services\Reports\SppArrearsReportService;
 use Filament\Actions\Action;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -35,20 +35,17 @@ class TunggakanSpp extends Page implements HasForms
     {
         return [
             Action::make('sync_smartsis')
-                ->label('Sync SmartSIS')
+                ->label('Sync Semua Data SmartSIS')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
                 ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
+                ->requiresConfirmation()
                 ->action(function () {
-                    $result = app(SmartsisReferenceSyncService::class)->syncForMonth($this->bulan, $this->tahun);
+                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
 
                     Notification::make()
-                        ->title('Sinkronisasi SmartSIS selesai')
-                        ->body(sprintf(
-                            'Master siswa %d, tunggakan %d baris.',
-                            ($result['master']['siswa_created'] ?? 0) + ($result['master']['siswa_updated'] ?? 0),
-                            ($result['arrears']['created'] ?? 0) + ($result['arrears']['updated'] ?? 0),
-                        ))
+                        ->title('Sync SmartSIS dimulai')
+                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
                         ->success()
                         ->send();
                 }),

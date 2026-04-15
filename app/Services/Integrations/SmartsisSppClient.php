@@ -3,7 +3,6 @@
 namespace App\Services\Integrations;
 
 use Illuminate\Http\Client\Factory as HttpFactory;
-use Illuminate\Http\Client\RequestException;
 
 class SmartsisSppClient
 {
@@ -30,7 +29,7 @@ class SmartsisSppClient
         $rows = [];
 
         do {
-            $payload = $this->request()
+            $payload = $this->requestForSync()
                 ->get('/api/keuangan/spp/pembayaran', [
                     'bulan' => $bulan,
                     'tahun' => $tahun,
@@ -64,7 +63,7 @@ class SmartsisSppClient
             $params['kelas'] = $kelas;
         }
 
-        return $this->request()
+        return $this->requestForSync()
             ->get('/api/keuangan/spp/tunggakan', $params)
             ->throw()
             ->json();
@@ -76,7 +75,7 @@ class SmartsisSppClient
         $rows = [];
 
         do {
-            $payload = $this->request()
+            $payload = $this->requestForSync()
                 ->get('/api/keuangan/master/siswa-aktif', [
                     'per_page' => $perPage,
                     'page' => $page,
@@ -95,10 +94,25 @@ class SmartsisSppClient
 
     protected function request()
     {
+        return $this->baseRequest((int) config('spp_integration.timeout', 10));
+    }
+
+    protected function requestForSync()
+    {
+        return $this->baseRequest((int) config('spp_integration.sync_timeout', 60));
+    }
+
+    protected function baseRequest(int $timeout)
+    {
         return $this->http
             ->baseUrl(rtrim((string) config('spp_integration.base_url'), '/'))
             ->acceptJson()
             ->withToken((string) config('spp_integration.token'))
-            ->timeout((int) config('spp_integration.timeout', 10));
+            ->retry(
+                (int) config('spp_integration.retry_times', 2),
+                (int) config('spp_integration.retry_sleep_ms', 1000),
+                throw: false,
+            )
+            ->timeout($timeout);
     }
 }

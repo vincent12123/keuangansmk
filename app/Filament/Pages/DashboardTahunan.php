@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Services\Integrations\SmartsisSppSyncService;
+use App\Jobs\SyncSmartsisYearToDateJob;
 use App\Services\Reports\DashboardTahunanReportService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -57,23 +57,17 @@ class DashboardTahunan extends Page
     {
         return [
             Action::make('sync_smartsis_year')
-                ->label('Sync SPP Setahun')
+                ->label('Sync Semua Data SmartSIS')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
                 ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
+                ->requiresConfirmation()
                 ->action(function () {
-                    $result = app(SmartsisSppSyncService::class)->syncYear($this->tahun, auth()->id());
+                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
 
                     Notification::make()
-                        ->title('Sinkronisasi SPP tahunan selesai')
-                        ->body(sprintf(
-                            'Fetched %d, create %d, update %d, delete %d untuk tahun %d.',
-                            $result['fetched'] ?? 0,
-                            $result['created'] ?? 0,
-                            $result['updated'] ?? 0,
-                            $result['deleted'] ?? 0,
-                            $this->tahun,
-                        ))
+                        ->title('Sync SmartSIS dimulai')
+                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
                         ->success()
                         ->send();
                 }),
