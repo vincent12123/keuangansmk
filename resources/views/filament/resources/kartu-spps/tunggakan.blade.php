@@ -29,12 +29,30 @@
                 </select>
             </div>
 
+            @if (config('spp_integration.enabled'))
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kelas</label>
+                    <select wire:model.live="filterKelas" class="rounded-lg border-gray-300 text-sm">
+                        <option value="">Semua Kelas</option>
+                        @foreach ($this->kelasOptions as $id => $nama)
+                            <option value="{{ $id }}">{{ $nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
             <div class="ml-auto flex items-center gap-3">
                 <span class="text-sm text-gray-500">
                     {{ count($this->tunggakanData) }} siswa belum bayar SPP {{ $this->namaBulan }} {{ $this->tahun }}
                 </span>
             </div>
         </div>
+
+        @if (config('spp_integration.enabled'))
+            <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                Data tunggakan diambil langsung dari SmartSIS.
+            </div>
+        @endif
 
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
             <table class="w-full text-sm">

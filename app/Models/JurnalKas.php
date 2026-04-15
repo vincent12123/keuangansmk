@@ -30,6 +30,7 @@ class JurnalKas extends Model
         'cash', 'bank', 'jenis',
         'bulan', 'tahun',
         'created_by', 'updated_by',
+        'external_source', 'external_reference', 'external_payload', 'external_synced_at',
     ];
 
     protected $casts = [
@@ -38,6 +39,8 @@ class JurnalKas extends Model
         'bank'    => 'decimal:2',
         'bulan'   => 'integer',
         'tahun'   => 'integer',
+        'external_payload' => 'array',
+        'external_synced_at' => 'datetime',
     ];
 
     // ─── Boot ────────────────────────────────────────────────
@@ -163,6 +166,10 @@ class JurnalKas extends Model
                 'tahun',
                 'created_by',
                 'updated_by',
+                'external_source',
+                'external_reference',
+                'external_payload',
+                'external_synced_at',
                 'deleted_at',
             ])
             ->logOnlyDirty()

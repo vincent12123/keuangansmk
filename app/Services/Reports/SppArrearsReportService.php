@@ -2,14 +2,22 @@
 
 namespace App\Services\Reports;
 
+use App\Models\Jurusan;
+use App\Models\Kelas;
 use App\Models\KartuSpp;
 use App\Models\Siswa;
+use App\Services\Integrations\SmartsisSppClient;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 class SppArrearsReportService
 {
-    public function build(int $bulan, int $tahun, ?int $jurusanId = null, ?int $kelasId = null): array
+    public function build(int $bulan, int $tahun, int|string|null $jurusanId = null, int|string|null $kelasId = null): array
     {
+        if ((bool) config('spp_integration.enabled')) {
+            return $this->buildFromSmartsis($bulan, $tahun, $jurusanId, $kelasId);
+        }
+
         $baseQuery = Siswa::query()
             ->aktif()
             ->with(['kelas', 'jurusan'])
@@ -91,5 +99,83 @@ class SppArrearsReportService
                 ['nama', 'asc'],
             ])->values(),
         ];
+    }
+
+    public function getIntegrationFilterOptions(): array
+    {
+        if (! (bool) config('spp_integration.enabled')) {
+            return [
+                'jurusan' => [],
+                'kelas' => [],
+            ];
+        }
+
+        try {
+            $students = app(SmartsisSppClient::class)->getAllActiveStudents();
+
+            $jurusan = collect($students)
+                ->pluck('jurusan')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->mapWithKeys(fn (string $name) => [$name => $name])
+                ->all();
+
+            $kelas = collect($students)
+                ->pluck('kelas')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->mapWithKeys(fn (string $name) => [$name => $name])
+                ->all();
+
+            return [
+                'jurusan' => $jurusan,
+                'kelas' => $kelas,
+            ];
+        } catch (\Throwable $exception) {
+            Log::warning('Gagal mengambil opsi filter tunggakan SmartSIS.', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [
+                'jurusan' => [],
+                'kelas' => [],
+            ];
+        }
+    }
+
+    protected function buildFromSmartsis(int $bulan, int $tahun, int|string|null $jurusanId = null, int|string|null $kelasId = null): array
+    {
+        $jurusanName = is_numeric((string) $jurusanId) && $jurusanId !== null
+            ? Jurusan::query()->whereKey((int) $jurusanId)->value('nama')
+            : ($jurusanId ?: null);
+        $kelasName = is_numeric((string) $kelasId) && $kelasId !== null
+            ? Kelas::query()->whereKey((int) $kelasId)->value('nama_kelas')
+            : ($kelasId ?: null);
+
+        try {
+            return app(SmartsisSppClient::class)->getArrearsReport($bulan, $tahun, $jurusanName, $kelasName);
+        } catch (\Throwable $exception) {
+            Log::warning('Gagal mengambil laporan tunggakan SPP dari SmartSIS.', [
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'total_siswa_aktif' => 0,
+                'total_sudah_bayar' => 0,
+                'total_belum_bayar' => 0,
+                'persen_sudah_bayar' => 0,
+                'persen_belum_bayar' => 0,
+                'total_nominal_masuk' => 0,
+                'total_nominal_tunggakan' => 0,
+                'stats_per_jurusan' => [],
+                'rows' => [],
+            ];
+        }
     }
 }

@@ -58,10 +58,19 @@ class DatabaseSeeder extends Seeder
             'view_dashboard',
         ]);
 
-        $this->call([
-            KodeAkunSeeder::class,
-            JurusanKelasSeeder::class,
-        ]);
+        $coreSeeders = [];
+
+        if ($this->shouldSeedKodeAkun()) {
+            $coreSeeders[] = KodeAkunSeeder::class;
+        }
+
+        if ($this->shouldSeedJurusanKelas()) {
+            $coreSeeders[] = JurusanKelasSeeder::class;
+        }
+
+        if ($coreSeeders !== []) {
+            $this->call($coreSeeders);
+        }
 
         $adminUser = User::firstOrCreate(
             ['email' => 'admin@karyabangsa.sch.id'],
@@ -90,9 +99,14 @@ class DatabaseSeeder extends Seeder
         );
         $kepalaSekolahUser->syncRoles(['kepala_sekolah']);
 
-        if ($this->shouldSeedDemoData()) {
+        if ($this->shouldSeedSiswa()) {
             $this->call([
                 SiswaSeeder::class,
+            ]);
+        }
+
+        if ($this->shouldSeedDummyFinance()) {
+            $this->call([
                 DummyFinanceSeeder::class,
             ]);
         }
@@ -109,5 +123,36 @@ class DatabaseSeeder extends Seeder
         }
 
         return filter_var(env('SEED_DEMO_DATA', false), FILTER_VALIDATE_BOOL);
+    }
+
+    protected function shouldSeedJurusanKelas(): bool
+    {
+        return $this->resolveSeedFlag('SEED_JURUSAN_KELAS', true);
+    }
+
+    protected function shouldSeedKodeAkun(): bool
+    {
+        return $this->resolveSeedFlag('SEED_KODE_AKUN', true);
+    }
+
+    protected function shouldSeedSiswa(): bool
+    {
+        return $this->resolveSeedFlag('SEED_SISWA', $this->shouldSeedDemoData());
+    }
+
+    protected function shouldSeedDummyFinance(): bool
+    {
+        return $this->resolveSeedFlag('SEED_DUMMY_FINANCE', $this->shouldSeedDemoData());
+    }
+
+    protected function resolveSeedFlag(string $key, bool $default): bool
+    {
+        $value = env($key);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOL);
     }
 }

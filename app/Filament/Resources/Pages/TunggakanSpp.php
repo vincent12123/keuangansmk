@@ -4,8 +4,7 @@ namespace App\Filament\Resources\Pages;
 
 use App\Filament\Resources\KartuSppResource;
 use App\Models\Jurusan;
-use App\Models\Siswa;
-use App\Models\KartuSpp;
+use App\Services\Reports\SppArrearsReportService;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Resources\Pages\Page;
@@ -21,6 +20,7 @@ class TunggakanSpp extends Page implements HasForms
     public int $bulan;
     public int $tahun;
     public ?string $filterJurusan = null;
+    public ?string $filterKelas = null;
 
     public function mount(): void
     {
@@ -32,34 +32,8 @@ class TunggakanSpp extends Page implements HasForms
     #[Computed]
     public function tunggakanData(): array
     {
-        $bulan = $this->bulan;
-        $tahun = $this->tahun;
-
-        // Ambil semua siswa aktif
-        $query = Siswa::aktif()->with(['kelas', 'jurusan']);
-        if ($this->filterJurusan) {
-            $query->where('jurusan_id', $this->filterJurusan);
-        }
-
-        $semua = $query->get();
-
-        // Ambil NIS yang sudah bayar untuk bulan & tahun ini
-        $sudahBayar = KartuSpp::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->pluck('nis')
-            ->toArray();
-
-        $tunggakan = $semua->filter(fn ($s) => ! in_array($s->nis, $sudahBayar));
-
-        return $tunggakan->map(fn ($s) => [
-            'nis'         => $s->nis,
-            'nama'        => $s->nama,
-            'kelas'       => $s->kelas->nama_kelas ?? '-',
-            'jurusan'     => $s->jurusan->kode ?? '-',
-            'nominal_spp' => $s->nominal_spp,
-            'no_hp_wali'  => $s->no_hp_wali,
-            'nama_wali'   => $s->nama_wali,
-        ])->values()->toArray();
+        return app(SppArrearsReportService::class)
+            ->build($this->bulan, $this->tahun, $this->filterJurusan, $this->filterKelas)['rows'];
     }
 
     #[Computed]
@@ -76,9 +50,38 @@ class TunggakanSpp extends Page implements HasForms
     #[Computed]
     public function jurusanOptions(): array
     {
+        if ((bool) config('spp_integration.enabled')) {
+            return app(SppArrearsReportService::class)->getIntegrationFilterOptions()['jurusan'];
+        }
+
         return Jurusan::aktif()
             ->orderBy('nama')
             ->pluck('nama', 'id')
             ->all();
+    }
+
+    #[Computed]
+    public function kelasOptions(): array
+    {
+        if ((bool) config('spp_integration.enabled')) {
+            $options = app(SppArrearsReportService::class)->getIntegrationFilterOptions();
+            $kelas = $options['kelas'];
+
+            if (! $this->filterJurusan) {
+                return $kelas;
+            }
+
+            $rows = app(SppArrearsReportService::class)->build($this->bulan, $this->tahun, $this->filterJurusan)['rows'];
+
+            return collect($rows)
+                ->pluck('kelas')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->mapWithKeys(fn (string $name) => [$name => $name])
+                ->all();
+        }
+
+        return [];
     }
 }

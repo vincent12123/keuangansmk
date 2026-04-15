@@ -45,6 +45,14 @@
                 </div>
             </div>
 
+            @if ($report['external_spp']['enabled'] ?? false)
+                <div class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                    SPP bulan ini memakai integrasi SmartSIS.
+                    Sumber:
+                    {{ $report['external_spp']['source'] === 'remote' ? 'API langsung' : ($report['external_spp']['source'] === 'cache' ? 'cache lokal terakhir' : ($report['external_spp']['source'] === 'database_sync' ? 'jurnal hasil sync database' : 'tidak tersedia')) }}.
+                </div>
+            @endif
+
             @if (auth()->user()?->isAdmin())
                 <div class="mt-4 flex flex-wrap gap-3">
                     <x-filament::button wire:click="simpanSaldoAwal" color="gray" :disabled="$report['is_locked']">

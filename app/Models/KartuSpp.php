@@ -17,11 +17,14 @@ class KartuSpp extends Model
     protected $fillable = [
         'nis', 'bulan', 'tahun', 'nominal',
         'tgl_bayar', 'jurnal_kas_id', 'keterangan',
+        'external_source', 'external_reference', 'external_payload', 'external_synced_at',
     ];
 
     protected $casts = [
         'tgl_bayar' => 'date',
         'nominal'   => 'decimal:0',
+        'external_payload' => 'array',
+        'external_synced_at' => 'datetime',
     ];
 
     public function siswa(): BelongsTo
@@ -61,6 +64,10 @@ class KartuSpp extends Model
                 'tgl_bayar',
                 'jurnal_kas_id',
                 'keterangan',
+                'external_source',
+                'external_reference',
+                'external_payload',
+                'external_synced_at',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()

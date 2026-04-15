@@ -14,8 +14,8 @@ class TunggakanSppExport implements FromArray, ShouldAutoSize, WithStyles
     public function __construct(
         protected int $bulan,
         protected int $tahun,
-        protected ?int $jurusanId = null,
-        protected ?int $kelasId = null,
+        protected int|string|null $jurusanId = null,
+        protected int|string|null $kelasId = null,
     ) {}
 
     public function array(): array

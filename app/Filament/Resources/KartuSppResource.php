@@ -179,6 +179,16 @@ class KartuSppResource extends Resource
                     ->label('Keterangan')
                     ->limit(30)
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('external_source')
+                    ->label('Sumber')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => $state === 'smksmartsis_spp' ? 'SmartSIS Sync' : ($state ?: 'Manual'))
+                    ->colors([
+                        'info' => fn (?string $state) => $state === 'smksmartsis_spp',
+                        'gray' => fn (?string $state) => blank($state),
+                    ])
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('bulan')

@@ -33,9 +33,9 @@ class LaporanTunggakanSpp extends Page
 
     public int $tahun;
 
-    public ?int $filterJurusan = null;
+    public ?string $filterJurusan = null;
 
-    public ?int $filterKelas = null;
+    public ?string $filterKelas = null;
 
     public function mount(): void
     {
@@ -121,6 +121,10 @@ class LaporanTunggakanSpp extends Page
     #[Computed]
     public function jurusanOptions(): array
     {
+        if ((bool) config('spp_integration.enabled')) {
+            return app(SppArrearsReportService::class)->getIntegrationFilterOptions()['jurusan'];
+        }
+
         return Jurusan::query()
             ->aktif()
             ->orderBy('nama')
@@ -131,6 +135,22 @@ class LaporanTunggakanSpp extends Page
     #[Computed]
     public function kelasOptions(): array
     {
+        if ((bool) config('spp_integration.enabled')) {
+            if (! $this->filterJurusan) {
+                return app(SppArrearsReportService::class)->getIntegrationFilterOptions()['kelas'];
+            }
+
+            $rows = app(SppArrearsReportService::class)->build($this->bulan, $this->tahun, $this->filterJurusan)['rows'];
+
+            return collect($rows)
+                ->pluck('kelas')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->mapWithKeys(fn (string $name) => [$name => $name])
+                ->all();
+        }
+
         return Kelas::query()
             ->aktif()
             ->when($this->filterJurusan, fn ($query) => $query->where('jurusan_id', $this->filterJurusan))

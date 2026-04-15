@@ -26,6 +26,11 @@ class JurnalKasObserver
 
     private function syncKartuSpp(JurnalKas $jurnal): void
     {
+        if ((bool) config('spp_integration.enabled')) {
+            $this->deleteLinkedKartuSpp($jurnal);
+            return;
+        }
+
         $kodeAkun = $jurnal->relationLoaded('kodeAkun')
             ? $jurnal->kodeAkun
             : KodeAkun::find($jurnal->kode_akun_id);

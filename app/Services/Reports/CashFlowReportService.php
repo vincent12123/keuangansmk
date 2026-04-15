@@ -12,8 +12,10 @@ class CashFlowReportService
     public function build(int $bulan, int $tahun): array
     {
         $opening = app(SaldoKasService::class)->getOpeningBalance($bulan, $tahun);
-        $movements = $this->getMovementTotals($bulan, $tahun);
-        $penerimaanSections = $this->getIncomingSections($bulan, $tahun);
+        $externalSpp = app(ExternalSppReportService::class)->getMonthlySummary($bulan, $tahun);
+        $useExternalOverlay = in_array($externalSpp['source'] ?? null, ['remote', 'cache'], true);
+        $movements = $this->getMovementTotals($bulan, $tahun, $externalSpp, $useExternalOverlay);
+        $penerimaanSections = $this->getIncomingSections($bulan, $tahun, $externalSpp, $useExternalOverlay);
         $pengeluaranSections = $this->getExpenseSections($bulan, $tahun);
         $totalPenerimaan = (float) collect($penerimaanSections)->sum('total');
         $totalPengeluaran = (float) collect($pengeluaranSections)->sum('total');
@@ -51,15 +53,21 @@ class CashFlowReportService
             'saldo_kas_besar' => $saldoKasBesar,
             'penerimaan_sections' => $penerimaanSections,
             'pengeluaran_sections' => $pengeluaranSections,
+            'external_spp' => $externalSpp,
         ];
     }
 
-    protected function getMovementTotals(int $bulan, int $tahun): array
+    protected function getMovementTotals(int $bulan, int $tahun, array $externalSpp, bool $useExternalOverlay): array
     {
         $masuk = JurnalKas::query()
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->where('jenis', 'masuk')
+            ->when($useExternalOverlay, function ($query) {
+                $query->whereDoesntHave('kodeAkun', function ($builder) {
+                    $builder->whereIn('kode', JurnalKas::SPP_ACCOUNT_CODES);
+                });
+            })
             ->selectRaw('COALESCE(SUM(cash), 0) as cash_total, COALESCE(SUM(bank), 0) as bank_total')
             ->first();
 
@@ -71,8 +79,8 @@ class CashFlowReportService
             ->first();
 
         return [
-            'masuk_cash' => (float) ($masuk->cash_total ?? 0),
-            'masuk_bank' => (float) ($masuk->bank_total ?? 0),
+            'masuk_cash' => (float) ($masuk->cash_total ?? 0) + ($useExternalOverlay ? (float) ($externalSpp['total_cash'] ?? 0) : 0.0),
+            'masuk_bank' => (float) ($masuk->bank_total ?? 0) + ($useExternalOverlay ? (float) ($externalSpp['total_bank'] ?? 0) : 0.0),
             'keluar_cash' => (float) ($keluar->cash_total ?? 0),
             'keluar_bank' => (float) ($keluar->bank_total ?? 0),
             'kas_kecil' => (float) KasKecil::query()
@@ -86,7 +94,7 @@ class CashFlowReportService
         ];
     }
 
-    protected function getIncomingSections(int $bulan, int $tahun): array
+    protected function getIncomingSections(int $bulan, int $tahun, array $externalSpp, bool $useExternalOverlay): array
     {
         $rows = JurnalKas::query()
             ->select([
@@ -112,6 +120,20 @@ class CashFlowReportService
                     'total' => (float) $row->total_nominal,
                 ];
             });
+
+        if ($useExternalOverlay) {
+            $rows = $rows
+                ->reject(fn (array $row) => in_array($row['kode'], JurnalKas::SPP_ACCOUNT_CODES, true))
+                ->values()
+                ->concat(collect($externalSpp['rows'] ?? [])->map(fn (array $row): array => [
+                    'kategori' => 'PENERIMAAN PENDIDIKAN',
+                    'kode' => $row['kode'],
+                    'nama' => $row['nama'],
+                    'cash' => (float) $row['cash'],
+                    'bank' => (float) $row['bank'],
+                    'total' => (float) $row['total'],
+                ]));
+        }
 
         $sections = [
             'B1' => ['title' => 'Penerimaan Pendidikan', 'kategori' => 'PENERIMAAN PENDIDIKAN'],

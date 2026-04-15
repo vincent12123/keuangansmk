@@ -2,14 +2,11 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\JurnalKas;
-use App\Models\KartuSpp;
-use App\Models\KasKecil;
 use App\Models\PengisianKasKecil;
-use App\Models\Siswa;
+use App\Services\Reports\CashFlowReportService;
+use App\Services\Reports\SppArrearsReportService;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 
 class RingkasanBulanWidget extends BaseWidget
@@ -22,34 +19,29 @@ class RingkasanBulanWidget extends BaseWidget
     {
         $bulan = now()->month;
         $tahun = now()->year;
+        $isIntegrationEnabled = (bool) config('spp_integration.enabled');
 
-        $totalMasuk = JurnalKas::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->where('jenis', 'masuk')
-            ->sum(DB::raw('cash + bank'));
+        $cashFlow = app(CashFlowReportService::class)->build($bulan, $tahun);
+        $arrears = app(SppArrearsReportService::class)->build($bulan, $tahun);
 
-        $totalKeluarBesar = JurnalKas::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->where('jenis', 'keluar')
-            ->sum(DB::raw('cash + bank'));
-
-        $totalKasKecil = KasKecil::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->sum('nominal');
-
-        $saldoBersih = $totalMasuk - $totalKeluarBesar - $totalKasKecil;
-
-        $totalSiswaAktif = Siswa::aktif()->count();
-        $sudahBayar = KartuSpp::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->distinct()
-            ->count('nis');
-        $belumBayar = $totalSiswaAktif - $sudahBayar;
+        $totalMasuk = (float) ($cashFlow['total_masuk'] ?? 0);
+        $totalKeluarBesar = (float) ($cashFlow['total_keluar_besar'] ?? 0);
+        $totalKasKecil = (float) ($cashFlow['total_kas_kecil'] ?? 0);
+        $saldoBersih = (float) ($cashFlow['selisih'] ?? 0);
+        $totalSiswaAktif = (int) ($arrears['total_siswa_aktif'] ?? 0);
+        $sudahBayar = (int) ($arrears['total_sudah_bayar'] ?? 0);
+        $belumBayar = (int) ($arrears['total_belum_bayar'] ?? 0);
 
         $pengisian = PengisianKasKecil::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->sum('nominal');
-        $saldoKasKecil = $pengisian - $totalKasKecil;
+        $saldoKasKecil = (float) ($cashFlow['saldo_kas_kecil'] ?? ($pengisian - $totalKasKecil));
+        $sppDescription = $isIntegrationEnabled
+            ? 'Data SmartSIS bulan ' . now()->translatedFormat('F Y')
+            : 'Bulan ' . now()->translatedFormat('F Y');
+        $belumBayarDescription = $isIntegrationEnabled
+            ? 'SmartSIS: dari total ' . $totalSiswaAktif . ' siswa aktif'
+            : 'Dari total ' . $totalSiswaAktif . ' siswa aktif';
 
         return [
             Stat::make('Total Penerimaan ' . now()->format('M Y'), 'Rp ' . Number::format($totalMasuk, 0))
@@ -73,12 +65,12 @@ class RingkasanBulanWidget extends BaseWidget
                 ->color($saldoKasKecil >= 0 ? 'info' : 'warning'),
 
             Stat::make('Siswa Belum Bayar SPP', $belumBayar . ' siswa')
-                ->description('Dari total ' . $totalSiswaAktif . ' siswa aktif')
+                ->description($belumBayarDescription)
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color($belumBayar === 0 ? 'success' : 'warning'),
 
             Stat::make('SPP Sudah Terbayar', $sudahBayar . ' siswa')
-                ->description('Bulan ' . now()->format('F Y'))
+                ->description($sppDescription)
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success'),
         ];

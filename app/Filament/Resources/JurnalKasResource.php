@@ -62,7 +62,9 @@ class JurnalKasResource extends Resource
                         ->required()
                         ->searchable()
                         ->preload()
-                        ->helperText('Jurnal hanya untuk akun non-kas-kecil yang aktif.')
+                        ->helperText(fn (): string => static::usesExternalSppIntegration()
+                            ? 'Jurnal hanya untuk akun non-kas-kecil yang aktif. Akun SPP manual dinonaktifkan karena memakai integrasi SmartSIS.'
+                            : 'Jurnal hanya untuk akun non-kas-kecil yang aktif.')
                         ->options(fn (): array => static::getJurnalKodeAkunOptions())
                         ->live()
                         ->afterStateUpdated(function ($state, Set $set) {
@@ -182,7 +184,7 @@ class JurnalKasResource extends Resource
                         ->helperText('Centang bulan-bulan yang tercakup dalam pembayaran ini')
                         ->dehydrated(),
                 ])
-                ->visible(fn (Get $get): bool => static::isSppAccountId($get('kode_akun_id'))),
+                ->visible(fn (Get $get): bool => static::isSppAccountId($get('kode_akun_id')) && ! static::usesExternalSppIntegration()),
         ]);
     }
 
@@ -412,6 +414,12 @@ class JurnalKasResource extends Resource
             ]);
         }
 
+        if (static::usesExternalSppIntegration() && in_array($kodeAkun->kode, JurnalKas::SPP_ACCOUNT_CODES, true)) {
+            throw ValidationException::withMessages([
+                'kode_akun_id' => 'Pembayaran SPP berasal dari integrasi SmartSIS. Gunakan sistem sumber untuk transaksi SPP.',
+            ]);
+        }
+
         $cash = (float) ($data['cash'] ?? 0);
         $bank = (float) ($data['bank'] ?? 0);
 
@@ -483,12 +491,18 @@ class JurnalKasResource extends Resource
         return KodeAkun::query()
             ->transaksional()
             ->where('kas_kecil', false)
+            ->when(static::usesExternalSppIntegration(), fn ($query) => $query->whereNotIn('kode', JurnalKas::SPP_ACCOUNT_CODES))
             ->orderBy('kode')
             ->get()
             ->mapWithKeys(fn (KodeAkun $kodeAkun) => [
                 $kodeAkun->id => $kodeAkun->label,
             ])
             ->all();
+    }
+
+    protected static function usesExternalSppIntegration(): bool
+    {
+        return (bool) config('spp_integration.enabled');
     }
 
     protected static function isSppAccountId(?int $kodeAkunId): bool
