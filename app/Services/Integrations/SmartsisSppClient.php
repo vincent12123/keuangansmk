@@ -92,6 +92,16 @@ class SmartsisSppClient
         return $rows;
     }
 
+    public function getYearToDateSnapshot(int $tahun): array
+    {
+        return $this->requestForSync()
+            ->get('/api/keuangan/spp/snapshot', [
+                'tahun' => $tahun,
+            ])
+            ->throw()
+            ->json();
+    }
+
     protected function request()
     {
         return $this->baseRequest((int) config('spp_integration.timeout', 10));

@@ -22,7 +22,12 @@ class SmartsisReferenceSyncService
 
     public function syncMasterData(): array
     {
-        $students = collect($this->client->getAllActiveStudents());
+        return $this->syncMasterDataFromRows($this->client->getAllActiveStudents());
+    }
+
+    public function syncMasterDataFromRows(array $students): array
+    {
+        $students = collect($students);
 
         $createdJurusan = 0;
         $updatedJurusan = 0;
@@ -78,7 +83,15 @@ class SmartsisReferenceSyncService
 
     public function syncArrears(int $bulan, int $tahun): array
     {
-        $report = $this->client->getArrearsReport($bulan, $tahun);
+        return $this->syncArrearsFromReport(
+            $this->client->getArrearsReport($bulan, $tahun),
+            $bulan,
+            $tahun,
+        );
+    }
+
+    public function syncArrearsFromReport(array $report, int $bulan, int $tahun): array
+    {
         $rows = collect($report['rows'] ?? []);
         $references = [];
         $created = 0;

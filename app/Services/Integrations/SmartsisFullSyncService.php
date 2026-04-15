@@ -7,6 +7,7 @@ use Throwable;
 class SmartsisFullSyncService
 {
     public function __construct(
+        protected SmartsisSppClient $client,
         protected SmartsisSppSyncService $sppSyncService,
         protected SmartsisReferenceSyncService $referenceSyncService,
     ) {
@@ -35,9 +36,18 @@ class SmartsisFullSyncService
 
         $masterErrors = [];
         $master = null;
+        $snapshot = null;
 
         try {
-            $master = $this->referenceSyncService->syncMasterData();
+            $snapshot = $this->client->getYearToDateSnapshot($tahun);
+        } catch (Throwable $exception) {
+            $masterErrors[] = 'Snapshot tahunan tidak tersedia, fallback ke mode bertahap: ' . $exception->getMessage();
+        }
+
+        try {
+            $master = $snapshot
+                ? $this->referenceSyncService->syncMasterDataFromRows($snapshot['master']['students'] ?? [])
+                : $this->referenceSyncService->syncMasterData();
         } catch (Throwable $exception) {
             $masterErrors[] = 'Sync master gagal: ' . $exception->getMessage();
             $master = [
@@ -66,7 +76,14 @@ class SmartsisFullSyncService
 
         foreach ($months as $bulan) {
             try {
-                $sppMonth = $this->sppSyncService->syncMonth($bulan, $tahun, $actorId);
+                $sppMonth = $snapshot
+                    ? $this->sppSyncService->syncMonthFromRows(
+                        $snapshot['payments']['by_month'][$bulan] ?? [],
+                        $bulan,
+                        $tahun,
+                        $actorId,
+                    )
+                    : $this->sppSyncService->syncMonth($bulan, $tahun, $actorId);
             } catch (Throwable $exception) {
                 $sppMonth = [
                     'fetched' => 0,
@@ -79,7 +96,17 @@ class SmartsisFullSyncService
             }
 
             try {
-                $arrears[$bulan] = $this->referenceSyncService->syncArrears($bulan, $tahun);
+                $arrears[$bulan] = $snapshot
+                    ? $this->referenceSyncService->syncArrearsFromReport(
+                        $snapshot['arrears']['by_month'][$bulan] ?? [
+                            'rows' => [],
+                            'total_siswa_aktif' => 0,
+                            'total_belum_bayar' => 0,
+                        ],
+                        $bulan,
+                        $tahun,
+                    )
+                    : $this->referenceSyncService->syncArrears($bulan, $tahun);
             } catch (Throwable $exception) {
                 $arrearsErrors[] = 'Sync tunggakan bulan ' . $bulan . ' gagal: ' . $exception->getMessage();
                 $arrears[$bulan] = [
@@ -108,6 +135,7 @@ class SmartsisFullSyncService
             'tahun' => $tahun,
             'months' => $months,
             'master' => $master,
+            'source' => $snapshot ? 'snapshot' : 'fallback',
             'master_errors' => array_values(array_unique($masterErrors)),
             'arrears' => $arrears,
             'arrears_errors' => array_values(array_unique($arrearsErrors)),

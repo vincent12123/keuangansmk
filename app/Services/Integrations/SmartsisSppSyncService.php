@@ -19,7 +19,16 @@ class SmartsisSppSyncService
 
     public function syncMonth(int $bulan, int $tahun, int $actorId): array
     {
-        $payments = $this->client->getAllPayments($bulan, $tahun);
+        return $this->syncMonthFromRows(
+            $this->client->getAllPayments($bulan, $tahun),
+            $bulan,
+            $tahun,
+            $actorId,
+        );
+    }
+
+    public function syncMonthFromRows(array $payments, int $bulan, int $tahun, int $actorId): array
+    {
         $references = [];
         $created = 0;
         $updated = 0;
