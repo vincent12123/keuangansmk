@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\SmartsisSyncRun;
 use App\Models\User;
 use App\Services\Integrations\SmartsisFullSyncService;
 use Filament\Notifications\Notification;
@@ -22,22 +23,49 @@ class SyncSmartsisYearToDateJob implements ShouldQueue
     public int $tries = 1;
 
     public function __construct(
-        public int $tahun,
-        public int $actorId,
+        public int $syncRunId,
     ) {
         $this->onQueue('default');
     }
 
     public function handle(SmartsisFullSyncService $syncService): void
     {
-        $result = $syncService->syncYearToDate($this->tahun, $this->actorId);
+        $syncRun = SmartsisSyncRun::query()->find($this->syncRunId);
+
+        if (! $syncRun) {
+            return;
+        }
+
+        $syncRun->forceFill([
+            'status' => 'running',
+            'started_at' => now(),
+            'finished_at' => null,
+            'error_message' => null,
+        ])->save();
+
+        $result = $syncService->syncYearToDate($syncRun->tahun, $syncRun->requested_by);
         $warnings = array_merge(
             $result['master_errors'] ?? [],
             $result['arrears_errors'] ?? [],
             $result['spp']['errors'] ?? [],
         );
 
-        $user = User::query()->find($this->actorId);
+        $syncRun->forceFill([
+            'status' => 'done',
+            'finished_at' => now(),
+            'months_synced' => $result['months'] ?? [],
+            'result_summary' => [
+                'payments_fetched' => (int) ($result['spp']['fetched'] ?? 0),
+                'students_fetched' => (int) ($result['master']['students_fetched'] ?? 0),
+                'arrears_synced_months' => count($result['arrears'] ?? []),
+                'warning_count' => count($warnings),
+            ],
+            'error_message' => $warnings !== []
+                ? implode(' ', array_slice($warnings, 0, 3))
+                : null,
+        ])->save();
+
+        $user = User::query()->find($syncRun->requested_by);
 
         if (! $user) {
             return;
@@ -47,7 +75,7 @@ class SyncSmartsisYearToDateJob implements ShouldQueue
             ->title('Sync SmartSIS selesai')
             ->body(sprintf(
                 'Tahun %d, bulan %s. Pembayaran %d data, siswa aktif %d, tunggakan %d bulan.',
-                $this->tahun,
+                $syncRun->tahun,
                 implode(', ', $result['months'] ?: ['-']),
                 $result['spp']['fetched'] ?? 0,
                 $result['master']['students_fetched'] ?? 0,
@@ -67,7 +95,17 @@ class SyncSmartsisYearToDateJob implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        $user = User::query()->find($this->actorId);
+        $syncRun = SmartsisSyncRun::query()->find($this->syncRunId);
+
+        if ($syncRun) {
+            $syncRun->forceFill([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'error_message' => $exception?->getMessage() ?: 'Terjadi kesalahan saat menjalankan sync di background.',
+            ])->save();
+        }
+
+        $user = User::query()->find($syncRun?->requested_by);
 
         if (! $user) {
             return;

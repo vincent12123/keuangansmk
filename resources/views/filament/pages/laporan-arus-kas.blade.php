@@ -45,6 +45,8 @@
                 </div>
             </div>
 
+            @include('filament.partials.smartsis-sync-status', ['status' => $this->latestSmartsisSyncStatus])
+
             @if ($report['external_spp']['enabled'] ?? false)
                 <div class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
                     SPP bulan ini memakai integrasi SmartSIS.

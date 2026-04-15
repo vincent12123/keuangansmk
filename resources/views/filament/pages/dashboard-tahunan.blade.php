@@ -52,14 +52,14 @@
     @endphp
 
     <div class="space-y-7">
+        @include('filament.partials.smartsis-sync-status', ['status' => $this->latestSmartsisSyncStatus])
+
         <section class="overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-stone-100 via-white to-teal-50 text-slate-900 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.22)] dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 dark:text-white">
             <div class="grid gap-7 px-6 py-7 lg:grid-cols-[1.35fr_0.95fr] lg:px-8">
                 <div class="space-y-5">
                     <div class="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-teal-200">
                         Monitoring Anggaran Tahunan
                     </div>
-
-
 
                     <div class="grid gap-3 sm:grid-cols-3">
                         <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">

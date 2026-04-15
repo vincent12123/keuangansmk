@@ -2,20 +2,20 @@
 
 namespace App\Filament\Resources\Pages;
 
-use App\Jobs\SyncSmartsisYearToDateJob;
+use App\Filament\Concerns\InteractsWithSmartsisSyncStatus;
 use App\Filament\Resources\KartuSppResource;
 use App\Models\Jurusan;
 use App\Services\Reports\SppArrearsReportService;
 use Filament\Actions\Action;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Livewire\Attributes\Computed;
 
 class TunggakanSpp extends Page implements HasForms
 {
     use InteractsWithForms;
+    use InteractsWithSmartsisSyncStatus;
 
     protected static string $resource = KartuSppResource::class;
     protected string $view = 'filament.resources.kartu-spps.tunggakan';
@@ -40,15 +40,7 @@ class TunggakanSpp extends Page implements HasForms
                 ->color('info')
                 ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
                 ->requiresConfirmation()
-                ->action(function () {
-                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
-
-                    Notification::make()
-                        ->title('Sync SmartSIS dimulai')
-                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
-                        ->success()
-                        ->send();
-                }),
+                ->action(fn () => $this->queueSmartsisSyncForSelectedYear()),
         ];
     }
 

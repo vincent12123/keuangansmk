@@ -2,15 +2,16 @@
 
 namespace App\Filament\Pages;
 
-use App\Jobs\SyncSmartsisYearToDateJob;
+use App\Filament\Concerns\InteractsWithSmartsisSyncStatus;
 use App\Services\Reports\DashboardTahunanReportService;
 use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\Attributes\Computed;
 
 class DashboardTahunan extends Page
 {
+    use InteractsWithSmartsisSyncStatus;
+
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-table-cells';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Laporan';
@@ -62,15 +63,7 @@ class DashboardTahunan extends Page
                 ->color('info')
                 ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
                 ->requiresConfirmation()
-                ->action(function () {
-                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
-
-                    Notification::make()
-                        ->title('Sync SmartSIS dimulai')
-                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
-                        ->success()
-                        ->send();
-                }),
+                ->action(fn () => $this->queueSmartsisSyncForSelectedYear()),
         ];
     }
 

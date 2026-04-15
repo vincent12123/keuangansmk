@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Exports\ArusKasBulananExport;
-use App\Jobs\SyncSmartsisYearToDateJob;
+use App\Filament\Concerns\InteractsWithSmartsisSyncStatus;
 use App\Services\AuditTrailService;
 use App\Services\ExportPdfService;
 use App\Services\Reports\CashFlowReportService;
@@ -17,6 +17,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanArusKas extends Page
 {
+    use InteractsWithSmartsisSyncStatus;
+
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Laporan';
@@ -91,13 +93,7 @@ class LaporanArusKas extends Page
                 ->modalDescription('Tarik pembayaran SPP, master siswa/kelas/jurusan, dan tunggakan SPP dari bulan 1 sampai bulan berjalan untuk tahun yang dipilih, lalu simpan ke database lokal.')
                 ->action(function () {
                     $this->authorizeAdminAction();
-                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
-
-                    Notification::make()
-                        ->title('Sync SmartSIS dimulai')
-                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
-                        ->success()
-                        ->send();
+                    $this->queueSmartsisSyncForSelectedYear();
                 }),
         ];
     }

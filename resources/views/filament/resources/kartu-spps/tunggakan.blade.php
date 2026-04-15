@@ -48,6 +48,8 @@
             </div>
         </div>
 
+@include('filament.partials.smartsis-sync-status', ['status' => $this->latestSmartsisSyncStatus])
+
 @if (config('spp_integration.enabled'))
     <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
         Data tunggakan menggunakan hasil sinkronisasi SmartSIS di database lokal.

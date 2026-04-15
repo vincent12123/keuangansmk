@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Exports\TunggakanSppExport;
-use App\Jobs\SyncSmartsisYearToDateJob;
+use App\Filament\Concerns\InteractsWithSmartsisSyncStatus;
 use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Services\AuditTrailService;
@@ -17,6 +17,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanTunggakanSpp extends Page
 {
+    use InteractsWithSmartsisSyncStatus;
+
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-exclamation-circle';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Laporan';
@@ -59,15 +61,7 @@ class LaporanTunggakanSpp extends Page
                 ->color('info')
                 ->visible(fn (): bool => (bool) config('spp_integration.enabled'))
                 ->requiresConfirmation()
-                ->action(function () {
-                    SyncSmartsisYearToDateJob::dispatch($this->tahun, auth()->id());
-
-                    Notification::make()
-                        ->title('Sync SmartSIS dimulai')
-                        ->body('Proses sinkronisasi berjalan di background. Notifikasi akan muncul setelah selesai.')
-                        ->success()
-                        ->send();
-                }),
+                ->action(fn () => $this->queueSmartsisSyncForSelectedYear()),
             Actions\Action::make('export_excel')
                 ->label('Export Excel')
                 ->icon('heroicon-o-arrow-down-tray')
